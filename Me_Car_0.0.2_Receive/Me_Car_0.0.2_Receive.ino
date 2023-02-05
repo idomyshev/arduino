@@ -10,6 +10,8 @@
 #include "RF24.h"
 #include "Servo.h"
 
+Servo motor1;
+
 RF24 radio(9, 10);  // "создать" модуль на пинах 9 и 10 Для Уно
 //RF24 radio(9,53); // для Меги
 
@@ -39,9 +41,6 @@ byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //в
 #define cmdBtnFunc4 14
 #define cmdBtnFunc5 15
 
-
-Servo servo;
-
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
   radio.begin();              // активировать модуль
@@ -61,8 +60,6 @@ void setup() {
   radio.powerUp();        // начать работу
   radio.startListening(); // начинаем слушать эфир, мы приёмный модуль
 
-  //servo.attach(3);
-
   pinMode(A1, OUTPUT);
   pinMode(A2, OUTPUT);
   pinMode(EN12, OUTPUT);
@@ -74,6 +71,13 @@ void setup() {
   pinMode(yellowLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
   pinMode(blueLed, OUTPUT);
+
+  // Attach pin to control brushless motor.
+  motor1.attach(7);
+  // Require to activate ESC (Electronic Speed Controller) for brushless motor.
+  // Mandatory 5s wait to prepare motor.
+  motor1.write(10);
+  delay(5000);
 }
 
 void loop() {
@@ -90,6 +94,16 @@ void loop() {
    //i++;
 
     //Serial.println(i);
+
+  motor1.write(50);
+  delay(1000);
+  motor1.write(100);
+  delay(1000);
+  motor1.write(50);
+  delay(1000);
+  motor1.write(10);
+  delay(5000);
+  
 
 
   while (radio.available(&pipeNo)) {        // слушаем эфир со всех труб

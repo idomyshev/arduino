@@ -20,6 +20,7 @@ byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //в
 
 #define remoteYellowLed A3
 #define remoteRedLed A2
+Servo motor1;
 
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
@@ -60,9 +61,12 @@ void setup() {
   
   pinMode(remoteYellowLed, OUTPUT);
   pinMode(remoteRedLed, OUTPUT);
+
+
 }
 
 void loop() {
+
   // Define buttons.
   int btnRight = !digitalRead(6);
   int btnDown = !digitalRead(7);
