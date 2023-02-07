@@ -6,9 +6,10 @@
 // Brushless motor;
 Servo motor;
 int minMotorVal = 800; // Could not be less than 800;
-int maxMotorVal = 860; // Could be not more than 2300;
+int maxMotorVal = 1060; // Could be not more than 2300;
 int minMotorFactoryVal = 800;
 int maxMotorFactoryVal = 2300;
+int motorSpeed = 0;
 
 // Radio;
 RF24 radio(9, 10); // Create radio module on pins 9, 10 for Nano/Uno;
@@ -70,7 +71,6 @@ void setup() {
 void loop() {
   byte pipeNo;  
   int gotByte;  
-  String inputString;
 
   while (radio.available(&pipeNo)) {      // Lister to ether from all pipes;
     radio.read(&gotByte, sizeof(gotByte));  // Read input signal;
@@ -81,9 +81,24 @@ void loop() {
     digitalWrite(greenLed, gotByte == cmdBtnRight ? HIGH : LOW);
     digitalWrite(blueLed, gotByte == cmdBtnDown ? HIGH : LOW);
 
-    inputString = String(gotByte);
-    Serial.println("receive:");
-    Serial.println(inputString);
+    // Logic to manage motor speed;
+    if (gotByte == cmdBtnUp && motorSpeed < maxMotorVal - minMotorVal) {
+      motorSpeed = motorSpeed + 5;
+    }
+    if (gotByte == cmdBtnDown && motorSpeed > 0) {
+      motorSpeed = motorSpeed - 5;
+    }
+    if (gotByte == cmdBtnFunc2) {
+      motorSpeed = 0;
+    }
+
+    // Give command to brushless motor;
+    motor.writeMicroseconds(minMotorVal + motorSpeed);
+
+    Serial.println("command:");
+    Serial.println(String(gotByte));
+    Serial.println("speed:");
+    Serial.println(motorSpeed);
     
     delay(50);
   }
