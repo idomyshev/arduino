@@ -11,11 +11,34 @@ void setup() {
   delay(1000);
   motor.writeMicroseconds(800);
   delay(6000);
+
+  
 }
 
 void loop() {
-  int analogVal = analogRead(0);
-  int motorVal = constrain(map(analogVal, 0, 1023, minMotorVal, maxMotorVal), minMotorVal, maxMotorVal);
-  motor.writeMicroseconds(motorVal);
-  Serial.println(motorVal);
+  // int analogVal = analogRead(0);
+  // int motorVal = constrain(map(analogVal, 0, 1023, minMotorVal, maxMotorVal), minMotorVal, maxMotorVal);
+  // motor.writeMicroseconds(motorVal);
+  
+  motor.writeMicroseconds(800);
+  Serial.println("phase0");
+  delay(2000);
+
+  motor.writeMicroseconds(860);
+  Serial.println("phase1");
+  delay(2000);
+  
+  motor.writeMicroseconds(880);
+  Serial.println("phase2");
+  delay(2000);
+  
+  motor.writeMicroseconds(900);
+  Serial.println("phase3");
+  delay(2000);
+
+  motor.writeMicroseconds(920);
+  Serial.println("phase4");
+  delay(2000);
+
+  //Serial.println(motorVal);
 }
