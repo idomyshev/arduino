@@ -6,7 +6,7 @@
 // Brushless motor;
 Servo motor;
 int minMotorVal = 800; // Could not be less than 800;
-int maxMotorVal = 1060; // Could be not more than 2300;
+int maxMotorVal = 1260; // Could be not more than 2300;
 int minMotorFactoryVal = 800;
 int maxMotorFactoryVal = 2300;
 int motorSpeed = 0;
