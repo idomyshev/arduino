@@ -5,6 +5,7 @@
 
 // Brushless motor;
 Servo motor;
+Servo rudder;
 int minMotorVal = 800; // Could not be less than 800;
 int maxMotorVal = 1260; // Could be not more than 2300;
 int minMotorFactoryVal = 800;
@@ -59,7 +60,9 @@ void setup() {
   pinMode(blueLed, OUTPUT);
 
   // Set pin for brushless motor;
-  motor.attach(2);
+  motor.attach(7);
+  // Set pin for servo motor;
+  rudder.attach(6);
   
   // Calibrate the brushless motor;
   motor.writeMicroseconds(maxMotorFactoryVal); // Set maximum speed;
@@ -90,6 +93,14 @@ void loop() {
     }
     if (gotByte == cmdBtnFunc2) {
       motorSpeed = 0;
+    }
+
+    if (gotByte == cmdBtnRight) {
+      rudder.write(180);
+    }
+
+    if (gotByte == cmdBtnLeft) {
+      rudder.write(0);
     }
 
     // Give command to brushless motor;
