@@ -7,10 +7,11 @@
 Servo motor;
 Servo rudder;
 int minMotorVal = 800; // Could not be less than 800;
-int maxMotorVal = 1260; // Could be not more than 2300;
+int maxMotorVal = 2300; // Could be not more than 2300; Soft power value is 1260;
 int minMotorFactoryVal = 800;
 int maxMotorFactoryVal = 2300;
 int motorSpeed = 0;
+int rudderValue = 90;
 
 // Radio;
 RF24 radio(9, 10); // Create radio module on pins 9, 10 for Nano/Uno;
@@ -84,27 +85,39 @@ void loop() {
     digitalWrite(greenLed, gotByte == cmdBtnRight ? HIGH : LOW);
     digitalWrite(blueLed, gotByte == cmdBtnDown ? HIGH : LOW);
 
-    // Logic to manage motor speed;
+    
+
+    // Logic to manage brushless motor speed;
     if (gotByte == cmdBtnUp && motorSpeed < maxMotorVal - minMotorVal) {
-      motorSpeed = motorSpeed + 5;
+      motorSpeed += 5;
     }
+
     if (gotByte == cmdBtnDown && motorSpeed > 0) {
-      motorSpeed = motorSpeed - 5;
+      motorSpeed -= 5;
     }
+
     if (gotByte == cmdBtnFunc2) {
       motorSpeed = 0;
     }
 
-    if (gotByte == cmdBtnRight) {
-      rudder.write(180);
+    // Logic to manage rudder servo;
+    if (gotByte == cmdBtnLeft && rudderValue >= 5) {
+      rudderValue -= 5;
     }
 
-    if (gotByte == cmdBtnLeft) {
-      rudder.write(0);
+    if (gotByte == cmdBtnRight && rudderValue <= 175) {
+      rudderValue += 5;
+    }
+
+    if (gotByte == cmdBtnFunc1) {
+      rudderValue = 90;
     }
 
     // Give command to brushless motor;
     motor.writeMicroseconds(minMotorVal + motorSpeed);
+
+    // Give command to rudder servo;
+    rudder.write(rudderValue);
 
     Serial.println("command:");
     Serial.println(String(gotByte));
