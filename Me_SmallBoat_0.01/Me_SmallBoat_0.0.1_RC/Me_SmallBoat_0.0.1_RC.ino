@@ -14,13 +14,6 @@ RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Дл
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
-// #define redLed 19
-// #define yellowLed 17
-// #define greenLed 18
-
-#define remoteYellowLed A3
-#define remoteRedLed A2
-
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
 
@@ -41,67 +34,22 @@ void setup() {
   radio.powerUp();        // начать работу
   radio.stopListening();  // не слушаем радиоэфир, мы передатчик
 
-  // TODO These two pins D1, D2 used for serial data exchange, that's why it's difficult to test same time with using serial port.
-  // pinMode(0, INPUT_PULLUP);
-  // pinMode(1, INPUT_PULLUP);
-  pinMode(2, INPUT_PULLUP); // D2
-  pinMode(3, INPUT_PULLUP); // D3
-  pinMode(4, INPUT_PULLUP); //D4
-  pinMode(5, INPUT_PULLUP); //D5
-  pinMode(6, INPUT_PULLUP); //D6
-  pinMode(7, INPUT_PULLUP); //D7
-  pinMode(8, INPUT_PULLUP); //D8
-  pinMode(A0, INPUT_PULLUP); //A0
-  pinMode(A1, INPUT_PULLUP); //A0
-
-  // pinMode(redLed, OUTPUT);
-  // pinMode(yellowLed, OUTPUT);
-  // pinMode(greenLed, OUTPUT);
-  
-  pinMode(remoteYellowLed, OUTPUT);
-  pinMode(remoteRedLed, OUTPUT);
-
-
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
 }
 
 void loop() {
-
-  // Define buttons.
-  int btnRight = !digitalRead(6);
   int btnDown = !digitalRead(7);
   int btnUp = !digitalRead(8);
-
-  int btnFunc1 = !digitalRead(2);
-  int btnFunc2 = !digitalRead(3);
-  int btnFunc3 = !digitalRead(4);
-  int btnFunc4 = !digitalRead(A0);
-  int btnFunc5 = !digitalRead(A1);
-
   int btnLeft = !digitalRead(5);
+  int btnRight = !digitalRead(6);
 
-  byte command = 0;
-
-  digitalWrite(remoteYellowLed, btnFunc1 ? HIGH : LOW);
-  digitalWrite(remoteRedLed, btnFunc2 ? HIGH : LOW);
-
-  if (btnFunc1) command = 11;
-  if (btnFunc2) command = 12;
-  if (btnFunc3) command = 13;
-  if (btnFunc4) command = 14;
-  if (btnFunc5) command = 15;
-  
-  // If more than one button is pushed in up/down/right/left,
-  // then only one will be prosessed with priority from highest to lowest: up -> down -> right -> left
-  if (btnLeft) command = 1;
-  if (btnRight) command = 2;
-  if (btnDown) command = 3;
-  if (btnUp) command = 4;
-  
-  Serial.println("send:");
-  //String payload = "9" + String(command) + "9";
-  //byte payloadNumber = payload.toInt();
-  Serial.println(command);
-  radio.write(&command, sizeof(command));
-  
-  //delay(40);
+  Serial.print("\n");
+  String payload = "1" + String(btnDown) + String(btnUp) + String(btnLeft) + String(btnRight);
+  int payloadInt = payload.toInt();
+  Serial.print(payloadInt);
+  radio.write(&payloadInt, sizeof(payloadInt));
+  delay(10);
 }

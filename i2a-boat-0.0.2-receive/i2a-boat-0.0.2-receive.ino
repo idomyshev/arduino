@@ -7,7 +7,7 @@
 Servo motor;
 Servo rudder;
 int minMotorVal = 800; // Could not be less than 800;
-int maxMotorVal = 2300; // Could be not more than 2300; Soft power value is 1260;
+int maxMotorVal = 2300; // Could be not more than 2300; Soft power value is 1260; Not use 2300, arduino behaves strange; 
 int minMotorFactoryVal = 800;
 int maxMotorFactoryVal = 2300;
 int motorSpeed = 0;
@@ -22,8 +22,8 @@ byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; // p
 #define yellowLed 3
 #define greenLed 4
 #define blueLed 5
-#define cmdBtnLeft 1
-#define cmdBtnRight 2
+#define cmdBtnLeft 2
+#define cmdBtnRight 1
 #define cmdBtnDown 3
 #define cmdBtnUp 4
 #define cmdBtnFunc1 11
@@ -101,12 +101,12 @@ void loop() {
     }
 
     // Logic to manage rudder servo;
-    if (gotByte == cmdBtnLeft && rudderValue >= 5) {
-      rudderValue -= 5;
+    if (gotByte == cmdBtnLeft && rudderValue >= 35) {
+      rudderValue -= 3;
     }
 
-    if (gotByte == cmdBtnRight && rudderValue <= 175) {
-      rudderValue += 5;
+    if (gotByte == cmdBtnRight && rudderValue <= 145) {
+      rudderValue += 3;
     }
 
     if (gotByte == cmdBtnFunc1) {
