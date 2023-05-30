@@ -24,6 +24,22 @@ byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //в
 #define EN34 3
 
 Servo servo;
+int loopDelay;
+int loopStep = 0;
+byte pipeNo;  
+int intPayload;
+String strPayload;
+
+int speed; // Speed value;
+int minSpeed = 10; // Value should be the same with RC;
+int maxSpeed = 40; // Value should be the same with RC;
+int motorSpeed;
+int minMotorSpeed = 110;
+int maxMotorSpeed = 255;
+
+int rudder; // Rudder value;
+int minRudder = 10; // Value should be the same with RC;
+int maxRudder = 40; // Value should be the same with RC;
 
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
@@ -52,108 +68,34 @@ void setup() {
   pinMode(A3, OUTPUT);
   pinMode(A4, OUTPUT);
   pinMode(EN34, OUTPUT);
-
 }
 
 void loop() {
-  byte pipeNo;  
-  int gotByte; int i; int speed;
-  String inputString;
-  String right; String left; String up; String down;
-  bool stopped = true;
-
-  speed = 255;
-
-  Serial.println("Hi! Start reading radio...");
-
   while (radio.available(&pipeNo)) {        // слушаем эфир со всех труб
-    radio.read(&gotByte, sizeof(gotByte));  // чиатем входящий сигнал
+    radio.read(&intPayload, sizeof(intPayload));  // чиатем входящий сигнал
+    strPayload = String(intPayload);
 
-    i++;
+    speed = strPayload.substring(0, 2).toInt();
 
-    Serial.println(i);
-
-    analogWrite(EN12, 255);
-    analogWrite(EN34, 255);
-
-    //Serial.print("Recieved: ");
-    //Serial.println(gotByte);
-    inputString = String(gotByte);
-    right = inputString.substring(1, 2);
-    left = inputString.substring(2, 3);
-    down = inputString.substring(3, 4);
-    up = inputString.substring(4, 5);
-
-    
-
-    if(right == "1") {
-      Serial.println("right");
-      //servo.write(0);
-
-      digitalWrite(A1, HIGH);
-      digitalWrite(A2, LOW);
-      digitalWrite(A3, HIGH);
-      digitalWrite(A4, LOW);
-
+    if (speed > minSpeed) {
+      //motorSpeed = speed - minSpeed + minMotorSpeed;
+      motorSpeed = map(speed, minSpeed, maxSpeed, minMotorSpeed, maxMotorSpeed);
+      motorSpeed = constrain(motorSpeed, minMotorSpeed, maxMotorSpeed);
+    } else {
+      motorSpeed = 0;
     }
 
-    if(left == "1") {
-      Serial.println("left");
+    rudder = strPayload.substring(2, 4).toInt();
 
-        digitalWrite(A1, LOW);
-        digitalWrite(A2, HIGH);
-        digitalWrite(A3, LOW);
-        digitalWrite(A4, HIGH);
+    analogWrite(EN12, motorSpeed);
+    analogWrite(EN34, motorSpeed);
 
-        stopped = false;
-    }
+    digitalWrite(A1, HIGH);
+    digitalWrite(A2, LOW);
+    digitalWrite(A3, LOW);
+    digitalWrite(A4, HIGH); 
 
-    if(up == "1") {
-      Serial.println("up");
-
-        digitalWrite(A1, HIGH);
-        digitalWrite(A2, LOW);
-        digitalWrite(A3, LOW);
-        digitalWrite(A4, HIGH);
-
-        stopped = false;
-      
-      //analogWrite(EN12, 255);
-      // if (speed <= 247) {
-      //   speed+=8;
-      //   //analogWrite(EN12, speed);
-        
-      // }
-    }
-
-    if(down == "1") {
-      Serial.println("down");  
-      
-      if (stopped == true) {
-        digitalWrite(A1, LOW);
-        digitalWrite(A2, HIGH);
-        digitalWrite(A3, HIGH);
-        digitalWrite(A4, LOW);
-
-        stopped = false;
-      } else {
-        digitalWrite(A1, LOW);
-        digitalWrite(A2, LOW);
-        digitalWrite(A3, LOW);
-        digitalWrite(A4, LOW);
-
-        stopped = true;
-      }      
-
-      // if (speed >= 8) {
-      //  speed-=8;
-      //  //analogWrite(EN12, speed);
-      // }
-      
-    }
-
-    delay(50);
-
+    // TODO: Uncomment when start using servo;
     // servo.write(0);
     // delay(1000);
     // servo.write(45);
@@ -165,4 +107,17 @@ void loop() {
     // servo.write(180);
     // delay(1000);
   }
+
+  
+  if (!loopStep) {
+    Serial.println("Motor speed is: "+ String(motorSpeed));
+    Serial.println("Rudder value is: "+ String(rudder));
+    Serial.println("loopStep: " + String(loopStep)); 
+    Serial.println("");
+  }
+
+  
+  loopStep = loopStep == 999999 ? 0: loopStep + 1;
+
+  delay(loopDelay);
 }

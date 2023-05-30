@@ -79,10 +79,10 @@ void loop() {
     //Serial.print("Recieved: ");
     //Serial.println(gotByte);
     inputString = String(gotByte);
-    right = inputString.substring(1, 2);
-    left = inputString.substring(2, 3);
-    down = inputString.substring(3, 4);
-    up = inputString.substring(4, 5);
+    down = inputString.substring(1, 2);
+    up = inputString.substring(2, 3);
+    left = inputString.substring(3, 4);
+    right = inputString.substring(4, 5);
 
     
 

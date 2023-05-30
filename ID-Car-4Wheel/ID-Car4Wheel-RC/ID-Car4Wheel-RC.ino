@@ -34,17 +34,17 @@ void setup() {
   radio.powerUp();        // начать работу
   radio.stopListening();  // не слушаем радиоэфир, мы передатчик
 
-  pinMode(2, INPUT_PULLUP);
-  pinMode(3, INPUT_PULLUP);
-  pinMode(4, INPUT_PULLUP);
+  pinMode(8, INPUT_PULLUP);
+  pinMode(7, INPUT_PULLUP);
+  pinMode(6, INPUT_PULLUP);
   pinMode(5, INPUT_PULLUP);
 }
 
 void loop() {
-  int btnDown = !digitalRead(2);
-  int btnUp = !digitalRead(3);
-  int btnLeft = !digitalRead(4);
-  int btnRight = !digitalRead(5);
+  int btnDown = !digitalRead(7);
+  int btnUp = !digitalRead(8);
+  int btnLeft = !digitalRead(5);
+  int btnRight = !digitalRead(6);
 
   Serial.print("\n");
   String payload = "1" + String(btnDown) + String(btnUp) + String(btnLeft) + String(btnRight);

@@ -9,11 +9,9 @@
 #include "nRF24L01.h"     // библиотека радиомодуля
 #include "RF24.h"         // ещё библиотека радиомодуля
 
-
-
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
-bool radioOn = false; // Developer, switch it off if your wi-fi module is next to you and you are not testing wi-fi now;
+bool radioOn = true; // Developer, switch it off if your wi-fi module is next to you and you are not testing wi-fi now;
 int loopDelay = 50;
 int intPayload;
 String strPayload;
@@ -99,17 +97,17 @@ void loop() {
     rudder -= stepRudder;
   }
 
-  Serial.println("Speed is: " + String(speed));
-  Serial.println("Rudder is: " + String(rudder));
+  // Serial.println("Speed is: " + String(speed));
+  // Serial.println("Rudder is: " + String(rudder));
   
   strPayload = String(speed) + String(rudder);
-  // int payloadInt = payloadStr.toInt();
-  Serial.println("Payload is: " + strPayload);
+  // Serial.println("Payload is: " + strPayload);
   // Serial.println("");
 
-  //if (radioOn && strPayload) {
-    //radio.write(&payloadInt, sizeof(payloadInt));
-  //}
+  if (radioOn && strPayload) {
+    intPayload = strPayload.toInt();
+    radio.write(&intPayload, sizeof(intPayload));
+  }
 
-  delay(50);
+  //delay(10);
 }
