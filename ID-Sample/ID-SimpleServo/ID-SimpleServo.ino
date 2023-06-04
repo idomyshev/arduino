@@ -4,7 +4,6 @@ Servo rudder;
 
 void setup() {
   rudder.attach(6);
-
 }
 
 void loop() {

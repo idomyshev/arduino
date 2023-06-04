@@ -38,8 +38,10 @@ int minMotorSpeed = 110;
 int maxMotorSpeed = 255;
 
 int rudder; // Rudder value;
-int minRudder = 10; // Value should be the same with RC;
-int maxRudder = 40; // Value should be the same with RC;
+int minRudder = 0; // Value should be the same with RC;
+int maxRudder = 180;
+int initialRudder = minRudder + (maxRudder - minRudder) / 2; // Value should be the same with RC;
+
 
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
@@ -60,14 +62,15 @@ void setup() {
   radio.powerUp();        // начать работу
   radio.startListening(); // начинаем слушать эфир, мы приёмный модуль
 
-  //servo.attach(3);
+  servo.attach(6);
 
   pinMode(A1, OUTPUT);
   pinMode(A2, OUTPUT);
   pinMode(EN12, OUTPUT);
-  pinMode(A3, OUTPUT);
-  pinMode(A4, OUTPUT);
-  pinMode(EN34, OUTPUT);
+
+  //pinMode(A3, OUTPUT);
+  //pinMode(A4, OUTPUT);
+  //pinMode(EN34, OUTPUT);
 }
 
 void loop() {
@@ -85,15 +88,17 @@ void loop() {
       motorSpeed = 0;
     }
 
-    rudder = strPayload.substring(2, 4).toInt();
-
     analogWrite(EN12, motorSpeed);
-    analogWrite(EN34, motorSpeed);
+    //analogWrite(EN34, motorSpeed);
 
     digitalWrite(A1, HIGH);
     digitalWrite(A2, LOW);
-    digitalWrite(A3, LOW);
-    digitalWrite(A4, HIGH); 
+    //digitalWrite(A3, LOW);
+    //digitalWrite(A4, HIGH); 
+
+    rudder = strPayload.substring(2, 4).toInt() * 2;
+    rudder = constrain(rudder, minRudder, maxRudder);
+    servo.write(rudder);
 
     // TODO: Uncomment when start using servo;
     // servo.write(0);
@@ -110,6 +115,7 @@ void loop() {
 
   
   if (!loopStep) {
+    Serial.println("Incoming data is: " + strPayload);
     Serial.println("Motor speed is: "+ String(motorSpeed));
     Serial.println("Rudder value is: "+ String(rudder));
     Serial.println("loopStep: " + String(loopStep)); 

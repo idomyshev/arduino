@@ -22,8 +22,8 @@ int initialValueSpeed = minSpeed;
 int speed = initialValueSpeed; // Current speed;
 int stepSpeed = 1;
 
-int minRudder = 10;
-int maxRudder = 40;
+int minRudder = 0;
+int maxRudder = 90;
 int initialValueRudder = minRudder + (maxRudder - minRudder) / 2;
 int rudder = initialValueRudder; // Current rudder value;
 int stepRudder = 1;
