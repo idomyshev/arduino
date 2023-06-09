@@ -15,13 +15,9 @@ RF24 radio(9, 10);  // "создать" модуль на пинах 9 и 10 Д�
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
-#define A1 4
-#define A2 2
+#define A1 2
+#define A2 4
 #define EN12 5
-
-#define A3 6
-#define A4 7
-#define EN34 3
 
 Servo servo;
 int loopDelay;
@@ -68,9 +64,6 @@ void setup() {
   pinMode(A2, OUTPUT);
   pinMode(EN12, OUTPUT);
 
-  //pinMode(A3, OUTPUT);
-  //pinMode(A4, OUTPUT);
-  //pinMode(EN34, OUTPUT);
 }
 
 void loop() {
@@ -81,7 +74,6 @@ void loop() {
     speed = strPayload.substring(0, 2).toInt();
 
     if (speed > minSpeed) {
-      //motorSpeed = speed - minSpeed + minMotorSpeed;
       motorSpeed = map(speed, minSpeed, maxSpeed, minMotorSpeed, maxMotorSpeed);
       motorSpeed = constrain(motorSpeed, minMotorSpeed, maxMotorSpeed);
     } else {
@@ -89,28 +81,12 @@ void loop() {
     }
 
     analogWrite(EN12, motorSpeed);
-    //analogWrite(EN34, motorSpeed);
-
     digitalWrite(A1, HIGH);
     digitalWrite(A2, LOW);
-    //digitalWrite(A3, LOW);
-    //digitalWrite(A4, HIGH); 
 
     rudder = strPayload.substring(2, 4).toInt() * 2;
     rudder = constrain(rudder, minRudder, maxRudder);
     servo.write(rudder);
-
-    // TODO: Uncomment when start using servo;
-    // servo.write(0);
-    // delay(1000);
-    // servo.write(45);
-    // delay(1000);
-    // servo.write(90);
-    // delay(1000);
-    // servo.write(135);
-    // delay(1000);
-    // servo.write(180);
-    // delay(1000);
   }
 
   
@@ -122,8 +98,8 @@ void loop() {
     Serial.println("");
   }
 
-  
-  loopStep = loopStep == 999999 ? 0: loopStep + 1;
+  // TODO: What is it for?
+  //loopStep = loopStep == 999999 ? 0: loopStep + 1;
 
   delay(loopDelay);
 }
