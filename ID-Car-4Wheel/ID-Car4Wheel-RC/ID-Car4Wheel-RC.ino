@@ -14,6 +14,12 @@ RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Дл
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
+int pot1 = A5;
+int pot1Value;
+int centerValue = 444;
+int rightValue = 133;
+int leftValue = centerValue * 2 - rightValue;
+
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
 
@@ -46,10 +52,10 @@ void loop() {
   int btnLeft = !digitalRead(5);
   int btnRight = !digitalRead(6);
 
-  Serial.print("\n");
-  String payload = "1" + String(btnDown) + String(btnUp) + String(btnLeft) + String(btnRight);
+  pot1Value = analogRead(pot1);
+  String payload = String(pot1Value / 16);
   int payloadInt = payload.toInt();
-  Serial.print(payloadInt);
+  Serial.println(payloadInt);
   radio.write(&payloadInt, sizeof(payloadInt));
   delay(10);
 }
