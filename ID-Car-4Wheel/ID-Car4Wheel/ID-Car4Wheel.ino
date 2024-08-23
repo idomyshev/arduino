@@ -6,11 +6,8 @@
 RF24 radio(9, 10);  // "создать" радио-модуль на пинах 9 и 10 Для Уно
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
-Servo servo;
+Servo rudder;
 Servo motor;
-
-int servoVal;
-int motorVal;
 
 int minMotorFactoryVal = 800;
 int maxMotorFactoryVal = 2300;
@@ -18,6 +15,11 @@ int maxMotorFactoryVal = 2300;
 byte pipeNo;  
 int gotByte; 
 String inputString;
+
+int motorValue;
+int rudderValue;
+
+int i = 0;
 
 void setup() {
   Serial.begin(9600);         // открываем порт для связи с ПК
@@ -39,7 +41,7 @@ void setup() {
   radio.startListening(); // начинаем слушать эфир, мы приёмный модуль
 
   motor.attach(5);
-  servo.attach(6);
+  rudder.attach(6);
 
   // Calibrate the brushless motor;
   motor.writeMicroseconds(maxMotorFactoryVal); // Set maximum speed;
@@ -55,13 +57,39 @@ void loop() {
     // Radio;
     radio.read(&gotByte, sizeof(gotByte));
     inputString = String(gotByte);
-    //Serial.println("Radio is: " + inputString);
 
-    // Servo;
-    servoVal = map(gotByte, 0, 64, 125, 55);
-    //servoVal = constrain(servoVal, 800, 2300);
-    Serial.println("Rudder value is: " + String(servoVal));
-    servo.write(servoVal);
+    rudderValue = inputString.substring(1, 3).toInt();
+    motorValue = inputString.substring(3, 5).toInt();
+
+    rudderValue = map(rudderValue, 63, 0, 55, 125);
+    motorValue = map(motorValue, 63, 0, 800, 2300);
+
+    rudderValue = constrain(rudderValue, 55, 125);
+    motorValue = constrain(motorValue, 800, 2300);
+
+    if (i == 50) {
+      i = 0;
+    }
+
+    if (i == 0) {
+      Serial.print("Motor value is: ");
+      Serial.println(motorValue);
+      Serial.print("Rudder value is: ");
+      Serial.println(rudderValue);
+      Serial.println("");
+    }
+
+    i++;
+
+    rudder.write(rudderValue);
+    motor.writeMicroseconds(motorValue);
+
+    //Serial.println("Input string is: " + inputString);
+    
+    // servoVal = map(gotByte, 0, 55, 125, 55);
+    // servoVal = constrain(servoVal, 125, 55);
+    // Serial.println("Rudder value is: " + String(servoVal));
+    // servo.write(servoVal);
 
     // // Motor;
     // motorVal = map(gotByte, 0, 64, 0, 255);
@@ -71,6 +99,6 @@ void loop() {
     // digitalWrite(A2, LOW);
 
 
-    delay(50);
+    delay(10);
   }
 }

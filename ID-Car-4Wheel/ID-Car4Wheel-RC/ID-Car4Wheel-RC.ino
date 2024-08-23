@@ -16,6 +16,8 @@ byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //в
 
 int pot1 = A5;
 int pot1Value;
+int pot2 = A6;
+int pot2Value;
 int centerValue = 444;
 int rightValue = 133;
 int leftValue = centerValue * 2 - rightValue;
@@ -53,9 +55,17 @@ void loop() {
   int btnRight = !digitalRead(6);
 
   pot1Value = analogRead(pot1);
-  String payload = String(pot1Value / 16);
-  int payloadInt = payload.toInt();
+  pot2Value = analogRead(pot2);
+  String payload1 = String(pot1Value / 16);
+  if (payload1.length() == 1) {
+    payload1 = "0" + payload1;
+  }
+  String payload2 = String(pot2Value / 16);
+  if (payload2.length() == 1) {
+    payload2 = "0" + payload2;
+  }
+  int payloadInt = ("1" + payload1 + payload2).toInt();
   Serial.println(payloadInt);
   radio.write(&payloadInt, sizeof(payloadInt));
-  delay(10);
+  delay(1);
 }
