@@ -16,6 +16,9 @@ const int ledPin = 2;
 // Current state of the LED
 String ledState = "OFF";
 
+String command = "";
+String speed = "";
+
 void setup()
 {
   // Initialize the LED pin as an output
@@ -67,15 +70,10 @@ void loop()
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
             client.println("<title>Ilia's ESP32</title></head>");
-            client.println("<body><h1>Ilia's ESP32</h1>");
+
 
             // Display current LED state
             client.println("<p>LED status is " + ledState + "</p>");
-
-            // Buttons to turn on/off the LED
-            client.println("<p><a href=\"/on\"><button>Make led ON</button></a></p>");
-            client.println("<p><a href=\"/off\"><button>Make led OFF</button></a></p>");
-            client.println("</body></html>");
 
             // The HTTP response ends with another blank line
             client.println();
@@ -93,21 +91,20 @@ void loop()
           currentLine += c;
         }
 
-        // Check if the client is requesting the LED to be turned on or off
-        if (header.indexOf("GET /on") >= 0)
-        {
-          Serial.println("LED SWITCH ON");
-          ledState = "ON";
+        command = header.substring(5, 7);
+        speed = header.substring(8, 11);
+        
+        Serial.println(command);
+        Serial.println(speed);
+
+        if (command == "on") {
           digitalWrite(ledPin, HIGH);
-          delay(500);
-          digitalWrite(ledPin, LOW);
-          delay(500);
+          ledState = "ON";
         }
-        else if (header.indexOf("GET /off") >= 0)
-        {
-          Serial.println("LED SWITCH OFF");
-          ledState = "OFF";
+
+        if (command == "of") {
           digitalWrite(ledPin, LOW);
+          ledState = "OFF";
         }
       }
     }
