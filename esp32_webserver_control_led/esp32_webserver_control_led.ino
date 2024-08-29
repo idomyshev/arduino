@@ -1,4 +1,8 @@
 #include <WiFi.h>
+#include <ESP32Servo.h>
+
+Servo myServo;
+int servoPin = 18;
 
 // Set the ESP32 as an access point
 const char *ssid = "ESP32-AP";
@@ -18,15 +22,23 @@ String ledState = "OFF";
 
 String command = "";
 String speed = "";
+String speedSign = "";
+
+int speedInt = 0;
 
 void setup()
 {
+  myServo.attach(servoPin);
+  myServo.write(0);
+
   // Initialize the LED pin as an output
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW); // LED is off initially
 
   // Start serial communication
   Serial.begin(115200);
+
+
 
   // Set up ESP32 as an access point
   Serial.println("Setting up access point...");
@@ -92,14 +104,27 @@ void loop()
         }
 
         command = header.substring(5, 7);
-        speed = header.substring(8, 11);
-        
+        speed = header.substring(8, 12);
+        speedSign = speed.substring(0, 1);
+        if (speedSign == "-") {
+          speed = speed.substring(1, 4);
+        } else {
+          speed = speed.substring(0, 3);
+        }
+
+        speedInt = speed.toInt();
+
         Serial.println(command);
         Serial.println(speed);
 
         if (command == "on") {
           digitalWrite(ledPin, HIGH);
           ledState = "ON";
+
+          if (speedInt >0 && speedInt < 180) {
+            Serial.println("Speed is: " + String(speedInt));
+            myServo.write(speedInt);
+          }
         }
 
         if (command == "of") {
