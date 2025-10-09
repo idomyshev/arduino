@@ -9,6 +9,8 @@
             "name": "PlatformIO",
             "includePath": [
                 "/Users/iliiah/MyDocs/Arduino/esp32_robo_arm/src",
+                "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
+                "/Users/iliiah/MyDocs/Arduino/esp32_robo_arm/.pio/libdeps/esp32dev/ArduinoJson/src",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -207,7 +209,6 @@
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/variants/esp32",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
-                "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/DNSServer/src",
                 "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
@@ -244,6 +245,8 @@
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
                     "/Users/iliiah/MyDocs/Arduino/esp32_robo_arm/src",
+                    "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
+                    "/Users/iliiah/MyDocs/Arduino/esp32_robo_arm/.pio/libdeps/esp32dev/ArduinoJson/src",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -442,7 +445,6 @@
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/variants/esp32",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
-                    "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/DNSServer/src",
                     "/Users/iliiah/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
