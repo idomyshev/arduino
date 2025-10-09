@@ -1,0 +1,15 @@
+# PlatformIO
+.pio
+.pioenvs
+.piolibdeps
+.pio-build
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+
+# macOS
+.DS_Store
+
+# Arduino IDE
+*.ino.bak
