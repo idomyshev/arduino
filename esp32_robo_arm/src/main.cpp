@@ -34,14 +34,17 @@
 // Состояние моторов
 struct MotorState
 {
-    int speed;    // Скорость 0-255
-    bool forward; // Направление: true = вперед, false = назад
+    int speed;               // Скорость 0-255
+    bool forward;            // Направление: true = вперед, false = назад
+    unsigned long startTime; // Время начала работы мотора
+    unsigned long duration;  // Длительность работы в миллисекундах (0 = бесконечно)
+    bool hasDuration;        // Есть ли ограничение по времени
 };
 
 MotorState motors[3] = {
-    {0, true}, // M1
-    {0, true}, // M2
-    {0, true}  // M3
+    {0, true, 0, 0, false}, // M1
+    {0, true, 0, 0, false}, // M2
+    {0, true, 0, 0, false}  // M3
 };
 
 // Forward declarations
@@ -183,6 +186,15 @@ void processCommand(String jsonCommand)
     int motorIndex = doc["motor"];       // 0, 1, 2 для M1, M2, M3
     String direction = doc["direction"]; // "forward" или "backward"
     int speed = doc["speed"];            // 0-255
+    unsigned long duration = 0;          // Длительность в миллисекундах (0 = бесконечно)
+    bool hasDuration = false;            // Есть ли ограничение по времени
+
+    // Проверяем наличие опционального параметра duration
+    if (doc["duration"].is<unsigned long>())
+    {
+        duration = doc["duration"];
+        hasDuration = true;
+    }
 
     // Проверяем корректность параметров
     if (motorIndex < 0 || motorIndex > 2)
@@ -200,57 +212,103 @@ void processCommand(String jsonCommand)
     // Обновляем состояние мотора
     motors[motorIndex].speed = speed;
     motors[motorIndex].forward = (direction == "forward");
+    motors[motorIndex].hasDuration = hasDuration;
+    motors[motorIndex].duration = duration;
+    motors[motorIndex].startTime = millis(); // Записываем время начала работы
 
-    Serial.println("Motor " + String(motorIndex) +
-                   " set to " + direction +
-                   " speed " + String(speed));
+    String logMessage = "Motor " + String(motorIndex) +
+                        " set to " + direction +
+                        " speed " + String(speed);
+
+    if (hasDuration)
+    {
+        logMessage += " for " + String(duration) + "ms";
+    }
+
+    Serial.println(logMessage);
 }
 
 // Обновление состояния всех моторов
 void updateMotors()
 {
+    unsigned long currentTime = millis();
+
     for (int i = 0; i < 3; i++)
     {
+        // Проверяем, не истекло ли время работы мотора
+        if (motors[i].hasDuration && motors[i].speed > 0)
+        {
+            if (currentTime - motors[i].startTime >= motors[i].duration)
+            {
+                // Время истекло, останавливаем мотор
+                motors[i].speed = 0;
+                motors[i].hasDuration = false;
+                Serial.println("Motor " + String(i) + " stopped after " + String(motors[i].duration) + "ms");
+            }
+        }
+
         // Устанавливаем скорость
         ledcWrite(i, motors[i].speed);
 
-        // Устанавливаем направление
-        if (motors[i].forward)
+        // Устанавливаем направление только если мотор работает
+        if (motors[i].speed > 0)
         {
-            // Вращение вперед
-            if (i == 0)
-            { // M1
-                digitalWrite(M1_IN1, HIGH);
-                digitalWrite(M1_IN2, LOW);
+            if (motors[i].forward)
+            {
+                // Вращение вперед
+                if (i == 0)
+                { // M1
+                    digitalWrite(M1_IN1, HIGH);
+                    digitalWrite(M1_IN2, LOW);
+                }
+                else if (i == 1)
+                { // M2
+                    digitalWrite(M2_IN1, HIGH);
+                    digitalWrite(M2_IN2, LOW);
+                }
+                else if (i == 2)
+                { // M3
+                    digitalWrite(M3_IN1, HIGH);
+                    digitalWrite(M3_IN2, LOW);
+                }
             }
-            else if (i == 1)
-            { // M2
-                digitalWrite(M2_IN1, HIGH);
-                digitalWrite(M2_IN2, LOW);
-            }
-            else if (i == 2)
-            { // M3
-                digitalWrite(M3_IN1, HIGH);
-                digitalWrite(M3_IN2, LOW);
+            else
+            {
+                // Вращение назад
+                if (i == 0)
+                { // M1
+                    digitalWrite(M1_IN1, LOW);
+                    digitalWrite(M1_IN2, HIGH);
+                }
+                else if (i == 1)
+                { // M2
+                    digitalWrite(M2_IN1, LOW);
+                    digitalWrite(M2_IN2, HIGH);
+                }
+                else if (i == 2)
+                { // M3
+                    digitalWrite(M3_IN1, LOW);
+                    digitalWrite(M3_IN2, HIGH);
+                }
             }
         }
         else
         {
-            // Вращение назад
+            // Мотор остановлен - устанавливаем все пины в LOW
             if (i == 0)
             { // M1
                 digitalWrite(M1_IN1, LOW);
-                digitalWrite(M1_IN2, HIGH);
+                digitalWrite(M1_IN2, LOW);
             }
             else if (i == 1)
             { // M2
                 digitalWrite(M2_IN1, LOW);
-                digitalWrite(M2_IN2, HIGH);
+                digitalWrite(M2_IN2, LOW);
             }
             else if (i == 2)
             { // M3
                 digitalWrite(M3_IN1, LOW);
-                digitalWrite(M3_IN2, HIGH);
+                digitalWrite(M3_IN2, LOW);
             }
         }
     }
@@ -262,6 +320,8 @@ void stopAllMotors()
     for (int i = 0; i < 3; i++)
     {
         motors[i].speed = 0;
+        motors[i].hasDuration = false;
+        motors[i].duration = 0;
     }
     Serial.println("All motors stopped");
 }

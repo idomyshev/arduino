@@ -1,15 +1,22 @@
-# PlatformIO
-.pio
-.pioenvs
-.piolibdeps
-.pio-build
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# VS Code
-.vscode/settings.json
-.vscode/launch.json
+# Virtual environment
+venv/
+env/
+ENV/
 
-# macOS
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
 .DS_Store
+Thumbs.db
 
-# Arduino IDE
-*.ino.bak
+# PlatformIO
+.pio/
