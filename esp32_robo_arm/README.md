@@ -11,6 +11,10 @@ esp32_robo_arm/
 │   └── main.cpp                # Основной код программы с BLE
 ├── tests/
 │   └── test_duration.py        # Тесты функциональности duration
+├── sequences/
+│   ├── robot_arm_library.py   # Библиотека команд для последовательностей
+│   ├── algorithm_1.py          # Последовательность 1: Все моторы вперед 5с + поочередная остановка
+│   └── README.md               # Документация последовательностей
 ├── robot_arm_controller.py     # Python скрипт для управления с Mac
 ├── requirements.txt            # Python зависимости
 ├── .gitignore                  # Исключения для Git
@@ -160,6 +164,42 @@ python tests/test_duration.py
 - Команды с `duration` (автоматическая остановка)
 - Несколько моторов с разным временем работы
 - Остановку всех моторов
+
+## Последовательности управления
+
+Для создания сложных последовательностей движений используйте готовые скрипты из папки `sequences/`:
+
+### Доступные последовательности:
+
+- **Sequence 1** - Все моторы вперед 5с + поочередная остановка
+  ```bash
+  python sequences/algorithm_1.py
+  ```
+
+### Библиотека команд:
+
+Используйте `robot_arm_library.py` для создания собственных последовательностей:
+
+```python
+from sequences.robot_arm_library import RobotArmLibrary
+
+async def my_sequence():
+    robot = RobotArmLibrary()
+    await robot.connect()
+
+    # Все моторы вперед на 3 секунды
+    await robot.all_motors_forward(speed=150, duration=3000)
+    await robot.wait(3.5)
+
+    # Поочередная остановка
+    for motor in range(3):
+        await robot.motor_stop(motor)
+        await robot.wait(2)
+
+    await robot.disconnect()
+```
+
+Подробная документация: [sequences/README.md](sequences/README.md)
 
 ## Требования
 
