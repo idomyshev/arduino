@@ -20,3 +20,6 @@ Thumbs.db
 
 # PlatformIO
 .pio/
+
+# Calibration data
+motor_calibration.json

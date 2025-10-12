@@ -14,7 +14,11 @@ esp32_robo_arm/
 ├── sequences/
 │   ├── robot_arm_library.py   # Библиотека команд для последовательностей
 │   ├── algorithm_1.py          # Последовательность 1: Все моторы вперед 5с + поочередная остановка
+│   ├── motor_calibration.py    # Модуль калибровки моторов
+│   ├── calibrated_robot_arm.py # Высокоуровневый контроллер с калибровкой
+│   ├── example_calibrated.py   # Примеры использования откалиброванной робо-руки
 │   └── README.md               # Документация последовательностей
+├── calibrate.py                # Скрипт калибровки моторов
 ├── robot_arm_controller.py     # Python скрипт для управления с Mac
 ├── requirements.txt            # Python зависимости
 ├── .gitignore                  # Исключения для Git
@@ -200,6 +204,116 @@ async def my_sequence():
 ```
 
 Подробная документация: [sequences/README.md](sequences/README.md)
+
+## Калибровка моторов
+
+Перед использованием робо-руки рекомендуется откалибровать моторы для определения их рабочих диапазонов:
+
+### Запуск калибровки:
+
+```bash
+python calibrate.py
+```
+
+### Процесс калибровки:
+
+1. **Выберите мотор** для калибровки (0, 1, 2)
+2. **Движение к минимальному положению** - мотор вращается вперед, вы нажимаете Enter когда рука достигнет крайнего положения
+3. **Движение к максимальному положению** - мотор вращается назад, вы нажимаете Enter когда рука достигнет другого крайнего положения
+4. **Возврат в исходное положение** - для измерения полного времени прохода
+5. **Сохранение данных** - результаты калибровки сохраняются в `motor_calibration.json`
+
+### Команды калибровки:
+
+- `calibrate 0` - Калибровка мотора 0
+- `calibrate 1` - Калибровка мотора 1
+- `calibrate 2` - Калибровка мотора 2
+- `status` - Показать статус калибровки всех моторов
+- `save` - Сохранить данные калибровки
+- `quit` - Выход из режима калибровки
+
+### Файл калибровки:
+
+Данные сохраняются в `motor_calibration.json`:
+
+```json
+{
+  "0": {
+    "calibrated": true,
+    "calibration_date": "2024-01-15T10:30:00",
+    "forward_time": 2.5,
+    "backward_time": 2.3,
+    "speed": 150,
+    "average_travel_time": 2.4
+  }
+}
+```
+
+## Высокоуровневый контроллер
+
+После калибровки моторов можно использовать `CalibratedRobotArm` для удобного управления:
+
+### Запуск демо:
+
+```bash
+python sequences/example_calibrated.py
+```
+
+### Интерактивный режим:
+
+```bash
+python sequences/example_calibrated.py interactive
+```
+
+### Основные возможности:
+
+#### Точное позиционирование:
+
+```python
+from sequences.calibrated_robot_arm import CalibratedRobotArm
+
+robot = CalibratedRobotArm()
+await robot.connect()
+
+# Движение на конкретный процент от диапазона
+await robot.move_to_percentage(0, 0.0)    # Минимум
+await robot.move_to_percentage(0, 0.5)    # Середина
+await robot.move_to_percentage(0, 1.0)    # Максимум
+await robot.move_to_percentage(0, 0.25)   # 25% от диапазона
+```
+
+#### Предустановленные позиции:
+
+```python
+# Доступные позиции: home, pick, place, rest, extended, retracted
+await robot.move_to_position("home")      # Домашняя позиция
+await robot.move_to_position("pick")     # Позиция для захвата
+await robot.move_to_position("place")    # Позиция для размещения
+```
+
+#### Плавные движения:
+
+```python
+# Плавное движение от 0% до 100% за 20 шагов
+await robot.smooth_move(0, 0.0, 1.0, steps=20, step_delay=0.1)
+```
+
+#### Готовые последовательности:
+
+```python
+await robot.pick_and_place_sequence()    # Взять → переместить → положить
+await robot.wave_sequence()              # Махание рукой
+```
+
+### Команды интерактивного режима:
+
+- `move 0 0.5` - Движение мотора 0 на 50%
+- `position home` - Переход в позицию "home"
+- `smooth 0 0.0 1.0` - Плавное движение мотора 0 от 0% до 100%
+- `pickplace` - Запуск последовательности pick and place
+- `wave` - Запуск последовательности махания
+- `status` - Показать статус калибровки
+- `positions` - Показать доступные позиции
 
 ## Требования
 
