@@ -22,7 +22,7 @@ class MotorCalibrator:
         self.controller = RobotArmController()
         self.connected = False
         self.calibration_data = {}
-        self.calibration_file = "motor_calibration.json"
+        self.calibration_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "motor_calibration", "motor_calibration.json")
         
     async def connect(self):
         """Подключение к ESP32"""

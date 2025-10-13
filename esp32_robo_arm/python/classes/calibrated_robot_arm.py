@@ -17,9 +17,12 @@ from classes.robot_arm_controller import RobotArmController
 class CalibratedRobotArm:
     """Высокоуровневый контроллер робо-руки с поддержкой калибровки"""
     
-    def __init__(self, calibration_file: str = "motor_calibration.json"):
+    def __init__(self, calibration_file: str = None):
         self.controller = RobotArmController()
-        self.calibration_file = calibration_file
+        if calibration_file is None:
+            self.calibration_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "motor_calibration", "motor_calibration.json")
+        else:
+            self.calibration_file = calibration_file
         self.calibration_data = {}
         self.connected = False
         

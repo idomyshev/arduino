@@ -22,4 +22,4 @@ Thumbs.db
 .pio/
 
 # Calibration data
-motor_calibration.json
+python/motor_calibration/motor_calibration.json
