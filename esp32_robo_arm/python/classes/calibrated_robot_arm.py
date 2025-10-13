@@ -26,6 +26,9 @@ class CalibratedRobotArm:
         self.calibration_data = {}
         self.connected = False
         
+        # Отслеживание текущих позиций моторов
+        self.current_positions = {0: 0.0, 1: 0.0, 2: 0.0}
+        
         # Предустановленные позиции робо-руки
         self.POSITIONS = {
             "home": {"motor_0": 0.0, "motor_1": 0.0, "motor_2": 0.0},
@@ -90,6 +93,15 @@ class CalibratedRobotArm:
         
         return True
     
+    def reset_positions(self):
+        """Сбросить отслеживание позиций моторов"""
+        self.current_positions = {0: 0.0, 1: 0.0, 2: 0.0}
+        print("Motor positions tracking reset to 0%")
+    
+    def get_current_position(self, motor: int) -> float:
+        """Получить текущую позицию мотора"""
+        return self.current_positions.get(motor, 0.0)
+    
     def get_motor_times(self, motor: int) -> Tuple[float, float]:
         """Получение времен движения для мотора
         
@@ -117,21 +129,36 @@ class CalibratedRobotArm:
         
         self.validate_percentage(motor, percentage)
         
+        # Проверяем, не находимся ли мы уже в целевой позиции
+        current_pos = self.current_positions[motor]
+        position_tolerance = 0.02  # 2% толерантность
+        if abs(percentage - current_pos) <= position_tolerance:
+            print(f"Motor {motor} already at position {percentage*100:.1f}%")
+            return True
+        
         backward_time, return_time = self.get_motor_times(motor)
         
-        # Вычисляем время для нужного процента
-        if percentage <= 0.5:
-            # Движение вперед (к минимальному положению)
-            target_time = int(return_time * percentage * 2 * 1000)  # в миллисекундах
-            direction = "forward"
-        else:
-            # Движение назад (к максимальному положению)
-            target_time = int(backward_time * (percentage - 0.5) * 2 * 1000)
+        # Вычисляем время движения от текущей позиции к целевой
+        if percentage > current_pos:
+            # Движение к максимальной позиции (backward)
+            distance = percentage - current_pos
+            target_time = int(backward_time * distance * 1000)  # в миллисекундах
             direction = "backward"
+        else:
+            # Движение к минимальной позиции (forward)
+            distance = current_pos - percentage
+            target_time = int(return_time * distance * 1000)  # в миллисекундах
+            direction = "forward"
         
-        print(f"Motor {motor} moving to {percentage*100:.1f}% ({direction}, {target_time}ms)")
+        print(f"Motor {motor} moving from {current_pos*100:.1f}% to {percentage*100:.1f}% ({direction}, {target_time}ms)")
         
-        return await self.controller.send_command(motor, direction, speed, target_time)
+        result = await self.controller.send_command(motor, direction, speed, target_time)
+        
+        # Обновляем текущую позицию
+        if result:
+            self.current_positions[motor] = percentage
+        
+        return result
     
     async def move_to_position(self, position_name: str, speed: int = 150):
         """Движение в предустановленную позицию
@@ -157,6 +184,12 @@ class CalibratedRobotArm:
         
         if tasks:
             await asyncio.gather(*tasks)
+            
+            # Обновляем текущие позиции после успешного движения
+            for motor_key, percentage in position.items():
+                motor_num = int(motor_key.split("_")[1])
+                if self.is_motor_calibrated(motor_num):
+                    self.current_positions[motor_num] = percentage
         else:
             print("No calibrated motors available for this position")
     
@@ -253,6 +286,20 @@ class CalibratedRobotArm:
             else:
                 print(f"Motor {motor}: ✗ NOT CALIBRATED")
             print()
+    
+    def show_current_positions(self):
+        """Показать текущие позиции всех моторов"""
+        print(f"\n{'='*50}")
+        print("CURRENT MOTOR POSITIONS")
+        print(f"{'='*50}")
+        
+        for motor in range(3):
+            if self.is_motor_calibrated(motor):
+                position = self.current_positions[motor]
+                print(f"Motor {motor}: {position*100:.1f}%")
+            else:
+                print(f"Motor {motor}: NOT CALIBRATED")
+        print()
     
     def show_available_positions(self):
         """Показать доступные предустановленные позиции"""
