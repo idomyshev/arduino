@@ -105,15 +105,20 @@ async def interactive_calibrated_mode():
         
         robot.show_calibration_status()
         
-        print("\nAvailable commands:")
-        print("  move <motor> <percentage>  - Move motor to percentage (0.0-1.0)")
-        print("  position <name>            - Move to predefined position")
-        print("  smooth <motor> <start> <end> - Smooth move between percentages")
-        print("  pickplace                  - Run pick and place sequence")
-        print("  wave                       - Run wave sequence")
-        print("  status                     - Show calibration status")
-        print("  positions                  - Show available positions")
-        print("  quit                       - Exit")
+        print("\n🤖 Доступные команды:")
+        print("  set <мотор> <позиция>      - Установить мотор в позицию (0-100%)")
+        print("  move <мотор> <позиция>     - То же что set")
+        print("  position <name>            - Переход в предустановленную позицию")
+        print("  smooth <мотор> <start> <end> - Плавное движение между позициями")
+        print("  pickplace                  - Последовательность 'взять-положить'")
+        print("  wave                       - Последовательность 'махание'")
+        print("  status                     - Показать статус калибровки")
+        print("  positions                  - Показать доступные позиции")
+        print("  quit                       - Выход")
+        print("\n💡 Примеры:")
+        print("  set 0 50                   - Мотор 0 в позицию 50%")
+        print("  move 1 25                  - Мотор 1 в позицию 25%")
+        print("  position home              - Все моторы в домашнюю позицию")
         
         while True:
             try:
@@ -129,18 +134,26 @@ async def interactive_calibrated_mode():
                     await robot.pick_and_place_sequence()
                 elif command == "wave":
                     await robot.wave_sequence()
-                elif command.startswith("move "):
-                    # Команда: move <motor> <percentage>
+                elif command.startswith("move ") or command.startswith("set "):
+                    # Команда: move/set <motor> <percentage>
                     parts = command.split()
                     if len(parts) == 3:
                         try:
                             motor = int(parts[1])
                             percentage = float(parts[2])
+                            
+                            # Если процент больше 1, считаем что это проценты (0-100)
+                            if percentage > 1:
+                                percentage = percentage / 100.0
+                            
                             await robot.move_to_percentage(motor, percentage)
+                            print(f"✅ Мотор {motor} установлен в позицию {percentage*100:.1f}%")
                         except ValueError:
-                            print("Usage: move <motor> <percentage> (0.0-1.0)")
+                            print("❌ Неверный формат: move <мотор> <позиция>")
+                            print("   Пример: move 0 50")
                     else:
-                        print("Usage: move <motor> <percentage>")
+                        print("❌ Неверный формат: move <мотор> <позиция>")
+                        print("   Пример: move 0 50")
                 elif command.startswith("position "):
                     # Команда: position <name>
                     parts = command.split()
