@@ -10,7 +10,7 @@ import os
 
 # Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sequences.calibrated_robot_arm import CalibratedRobotArm
+from classes.calibrated_robot_arm import CalibratedRobotArm
 
 async def demo_calibrated_movements():
     """Демонстрация откалиброванных движений"""

@@ -8,8 +8,8 @@ import asyncio
 import sys
 import os
 
-# Добавляем папку sequences в путь для импорта
-sys.path.append(os.path.join(os.path.dirname(__file__), 'sequences'))
+# Добавляем папку classes в путь для импорта
+sys.path.append(os.path.join(os.path.dirname(__file__), 'classes'))
 from motor_calibration import MotorCalibrator
 
 async def main():

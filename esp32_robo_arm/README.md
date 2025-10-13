@@ -9,17 +9,19 @@ esp32_robo_arm/
 ├── platformio.ini              # Конфигурация PlatformIO
 ├── src/
 │   └── main.cpp                # Основной код программы с BLE
-├── tests/
-│   └── test_duration.py        # Тесты функциональности duration
-├── sequences/
-│   ├── robot_arm_library.py   # Библиотека команд для последовательностей
-│   ├── algorithm_1.py          # Последовательность 1: Все моторы вперед 5с + поочередная остановка
-│   ├── motor_calibration.py    # Модуль калибровки моторов
-│   ├── calibrated_robot_arm.py # Высокоуровневый контроллер с калибровкой
-│   ├── example_calibrated.py   # Примеры использования откалиброванной робо-руки
-│   └── README.md               # Документация последовательностей
-├── calibrate.py                # Скрипт калибровки моторов
-├── robot_arm_controller.py     # Python скрипт для управления с Mac
+├── python/                     # Все Python файлы
+│   ├── calibrate.py            # Скрипт калибровки моторов
+│   ├── classes/                # Основные классы
+│   │   ├── robot_arm_controller.py # Python скрипт для управления с Mac
+│   │   ├── motor_calibration.py    # Модуль калибровки моторов
+│   │   └── calibrated_robot_arm.py # Высокоуровневый контроллер с калибровкой
+│   ├── sequences/              # Последовательности управления
+│   │   ├── robot_arm_library.py   # Библиотека команд для последовательностей
+│   │   ├── algorithm_1.py          # Последовательность 1: Все моторы вперед 5с + поочередная остановка
+│   │   ├── example_calibrated.py   # Примеры использования откалиброванной робо-руки
+│   │   └── README.md               # Документация последовательностей
+│   └── tests/                  # Тесты
+│       └── test_duration.py        # Тесты функциональности duration
 ├── requirements.txt            # Python зависимости
 ├── .gitignore                  # Исключения для Git
 └── README.md                   # Этот файл
@@ -159,7 +161,7 @@ stop
 source venv/bin/activate
 
 # Запуск теста функциональности duration
-python tests/test_duration.py
+python python/tests/test_duration.py
 ```
 
 Тест проверяет:
@@ -177,7 +179,7 @@ python tests/test_duration.py
 
 - **Sequence 1** - Все моторы вперед 5с + поочередная остановка
   ```bash
-  python sequences/algorithm_1.py
+  python python/sequences/algorithm_1.py
   ```
 
 ### Библиотека команд:
@@ -185,7 +187,7 @@ python tests/test_duration.py
 Используйте `robot_arm_library.py` для создания собственных последовательностей:
 
 ```python
-from sequences.robot_arm_library import RobotArmLibrary
+from python.classes.robot_arm_library import RobotArmLibrary
 
 async def my_sequence():
     robot = RobotArmLibrary()
@@ -203,7 +205,7 @@ async def my_sequence():
     await robot.disconnect()
 ```
 
-Подробная документация: [sequences/README.md](sequences/README.md)
+Подробная документация: [python/sequences/README.md](python/sequences/README.md)
 
 ## Калибровка моторов
 
@@ -212,7 +214,7 @@ async def my_sequence():
 ### Запуск калибровки:
 
 ```bash
-python calibrate.py
+python python/calibrate.py
 ```
 
 ### Процесс калибровки:
@@ -256,13 +258,13 @@ python calibrate.py
 ### Запуск демо:
 
 ```bash
-python sequences/example_calibrated.py
+python python/sequences/example_calibrated.py
 ```
 
 ### Интерактивный режим:
 
 ```bash
-python sequences/example_calibrated.py interactive
+python python/sequences/example_calibrated.py interactive
 ```
 
 ### Основные возможности:
@@ -270,7 +272,7 @@ python sequences/example_calibrated.py interactive
 #### Точное позиционирование:
 
 ```python
-from sequences.calibrated_robot_arm import CalibratedRobotArm
+from python.classes.calibrated_robot_arm import CalibratedRobotArm
 
 robot = CalibratedRobotArm()
 await robot.connect()

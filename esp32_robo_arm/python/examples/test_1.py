@@ -10,7 +10,7 @@ import os
 
 # Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from robot_arm_controller import RobotArmController
+from classes.robot_arm_controller import RobotArmController
 
 async def test_stop():
     """Простой тест остановки"""

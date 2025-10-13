@@ -12,7 +12,7 @@ from typing import Dict, Optional, Tuple
 
 # Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from robot_arm_controller import RobotArmController
+from classes.robot_arm_controller import RobotArmController
 
 class CalibratedRobotArm:
     """Высокоуровневый контроллер робо-руки с поддержкой калибровки"""
