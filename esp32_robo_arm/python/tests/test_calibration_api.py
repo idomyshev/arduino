@@ -8,8 +8,8 @@ import asyncio
 import sys
 import os
 
-# Добавляем путь к классам
-sys.path.append(os.path.join(os.path.dirname(__file__), 'classes'))
+# Добавляем путь к модулям
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enhanced_calibrate import EnhancedMotorCalibrator
 

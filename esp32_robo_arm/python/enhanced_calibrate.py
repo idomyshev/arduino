@@ -24,26 +24,13 @@ class EnhancedMotorCalibrator:
     
     def __init__(self, 
                  robot_id: str = "esp32_robot_arm_001",
-                 server_url: str = "http://localhost:8000/api",
-                 use_api: bool = True,
-                 fallback_to_file: bool = True):
+                 server_url: str = "http://localhost:8000/api"):
         
         self.controller = RobotArmController()
         self.connected = False
         self.calibration_data = {}
         self.robot_id = robot_id
         self.server_url = server_url
-        self.use_api = use_api
-        self.fallback_to_file = fallback_to_file
-        
-        # Путь к файлу калибровки (для совместимости)
-        self.calibration_file = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-            "motor_calibration", "motor_calibration.json"
-        )
-        
-        # Создаем директорию если не существует
-        os.makedirs(os.path.dirname(self.calibration_file), exist_ok=True)
     
     async def connect(self):
         """Подключение к ESP32"""
@@ -68,19 +55,14 @@ class EnhancedMotorCalibrator:
             print("Disconnected from ESP32")
     
     async def load_calibration_data(self):
-        """Загрузка данных калибровки из API или файла"""
-        if self.use_api:
-            try:
-                await self._load_from_api()
-                return True
-            except Exception as e:
-                print(f"Failed to load from API: {e}")
-                if self.fallback_to_file:
-                    print("Falling back to file storage...")
-                    return self._load_from_file()
-                return False
-        else:
-            return self._load_from_file()
+        """Загрузка данных калибровки из API"""
+        try:
+            await self._load_from_api()
+            return True
+        except Exception as e:
+            print(f"Failed to load from API: {e}")
+            print("Make sure API server is running: cd python/server && python3 data_server.py")
+            return False
     
     async def _load_from_api(self):
         """Загрузка данных калибровки с сервера"""
@@ -115,42 +97,17 @@ class EnhancedMotorCalibrator:
                 self.calibration_data = calibration_data
                 print(f"Loaded calibration data from API for robot {self.robot_id}")
     
-    def _load_from_file(self):
-        """Загрузка данных калибровки из файла"""
-        if os.path.exists(self.calibration_file):
-            try:
-                with open(self.calibration_file, 'r') as f:
-                    self.calibration_data = json.load(f)
-                print(f"Loaded calibration data from {self.calibration_file}")
-                return True
-            except Exception as e:
-                print(f"Error loading calibration data: {e}")
-                return False
-        else:
-            print("No calibration file found. Starting fresh calibration.")
-            return False
     
     async def save_calibration_data(self):
-        """Сохранение данных калибровки в API и/или файл"""
-        success = True
-        
-        if self.use_api:
-            try:
-                await self._save_to_api()
-                print("✅ Calibration data saved to API")
-            except Exception as e:
-                print(f"❌ Failed to save to API: {e}")
-                success = False
-        
-        if self.fallback_to_file:
-            try:
-                self._save_to_file()
-                print("✅ Calibration data saved to file")
-            except Exception as e:
-                print(f"❌ Failed to save to file: {e}")
-                success = False
-        
-        return success
+        """Сохранение данных калибровки в API"""
+        try:
+            await self._save_to_api()
+            print("✅ Calibration data saved to API")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to save to API: {e}")
+            print("Make sure API server is running: cd python/server && python3 data_server.py")
+            return False
     
     async def _save_to_api(self):
         """Сохранение данных калибровки на сервер"""
@@ -185,10 +142,6 @@ class EnhancedMotorCalibrator:
                 if response.status != 200:
                     raise Exception(f"Server error: {response.status}")
     
-    def _save_to_file(self):
-        """Сохранение данных калибровки в файл"""
-        with open(self.calibration_file, 'w') as f:
-            json.dump(self.calibration_data, f, indent=2)
     
     async def calibrate_motor(self, motor: int, speed: int = 150):
         """Калибровка конкретного мотора
@@ -315,9 +268,9 @@ class EnhancedMotorCalibrator:
         return True
     
     async def interactive_calibration(self):
-        """Интерактивная калибровка с выбором режима"""
-        print("ESP32 Robot Arm - Enhanced Motor Calibration")
-        print("=" * 50)
+        """Интерактивная калибровка с API хранением"""
+        print("ESP32 Robot Arm - Enhanced Motor Calibration (API Only)")
+        print("=" * 60)
         
         # Выбор робота
         print(f"\nCurrent robot ID: {self.robot_id}")
@@ -325,26 +278,16 @@ class EnhancedMotorCalibrator:
         if change_robot == 'y':
             self.robot_id = input("Enter robot ID: ").strip() or self.robot_id
         
-        # Выбор режима хранения
-        print(f"\nStorage options:")
-        print("1. API only (server)")
-        print("2. File only (local)")
-        print("3. Hybrid (API + file)")
+        # Проверяем API
+        print(f"\nChecking API server...")
+        api_available = await self.test_api_connection()
         
-        storage_choice = input("Choose storage mode (1-3): ").strip()
+        if not api_available:
+            print("❌ API server is not available!")
+            print("Please start the server: cd python/server && python3 data_server.py")
+            return
         
-        if storage_choice == "1":
-            self.use_api = True
-            self.fallback_to_file = False
-            print("✅ Using API storage only")
-        elif storage_choice == "2":
-            self.use_api = False
-            self.fallback_to_file = True
-            print("✅ Using file storage only")
-        else:
-            self.use_api = True
-            self.fallback_to_file = True
-            print("✅ Using hybrid storage (API + file)")
+        print("✅ Using API storage")
         
         # Подключение к роботу
         if not await self.connect():
@@ -457,11 +400,8 @@ class EnhancedMotorCalibrator:
                 position_name="calibration_start"
             )
             
-            # Сохраняем через систему хранения данных
-            if self.use_api:
-                await self._save_position_to_api(position)
-            if self.fallback_to_file:
-                await self._save_position_to_file(position)
+            # Сохраняем через API
+            await self._save_position_to_api(position)
                 
             print("✅ Calibration start position saved (all motors at 0%)")
             return True
@@ -486,18 +426,6 @@ class EnhancedMotorCalibrator:
                 if response.status != 200:
                     raise Exception(f"Server error: {response.status}")
     
-    async def _save_position_to_file(self, position):
-        """Сохранение позиции в файл"""
-        position_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "data", "robot_data_position.json"
-        )
-        
-        # Создаем директорию если не существует
-        os.makedirs(os.path.dirname(position_file), exist_ok=True)
-        
-        with open(position_file, 'w') as f:
-            json.dump(asdict(position), f, indent=2)
 
 # Пример использования
 async def main():

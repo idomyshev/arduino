@@ -290,6 +290,166 @@ async def server_status():
         "timestamp": datetime.now().isoformat()
     }
 
+@app.get("/api")
+async def api_info():
+    """Информация о всех доступных API endpoints"""
+    base_url = "http://localhost:8000"
+    
+    endpoints = {
+        "info": {
+            "title": "Robot Arm Data Server API",
+            "version": "1.0.0",
+            "description": "API для управления данными робота-руки ESP32",
+            "base_url": base_url
+        },
+        "endpoints": {
+            "calibration": {
+                "save": {
+                    "method": "POST",
+                    "url": f"{base_url}/api/calibration",
+                    "description": "Сохранение калибровочных данных робота",
+                    "body": "CalibrationRequest"
+                },
+                "get": {
+                    "method": "GET", 
+                    "url": f"{base_url}/api/calibration/{{robot_id}}",
+                    "description": "Получение калибровочных данных робота",
+                    "example": f"{base_url}/api/calibration/esp32_robot_arm_001"
+                }
+            },
+            "position": {
+                "save": {
+                    "method": "POST",
+                    "url": f"{base_url}/api/position",
+                    "description": "Сохранение текущей позиции робота",
+                    "body": "PositionRequest"
+                },
+                "get": {
+                    "method": "GET",
+                    "url": f"{base_url}/api/position/{{robot_id}}",
+                    "description": "Получение текущей позиции робота",
+                    "example": f"{base_url}/api/position/esp32_robot_arm_001"
+                },
+                "history": {
+                    "method": "GET",
+                    "url": f"{base_url}/api/position/{{robot_id}}/history",
+                    "description": "Получение истории позиций робота",
+                    "example": f"{base_url}/api/position/esp32_robot_arm_001/history"
+                }
+            },
+            "management": {
+                "robots": {
+                    "method": "GET",
+                    "url": f"{base_url}/api/robots",
+                    "description": "Получение списка всех роботов"
+                },
+                "status": {
+                    "method": "GET",
+                    "url": f"{base_url}/api/status",
+                    "description": "Статус сервера"
+                },
+                "database": {
+                    "method": "GET",
+                    "url": f"{base_url}/api/database",
+                    "description": "Структура базы данных"
+                },
+                "api_info": {
+                    "method": "GET",
+                    "url": f"{base_url}/api",
+                    "description": "Информация о всех endpoints (этот endpoint)"
+                }
+            }
+        },
+        "data_models": {
+            "CalibrationRequest": {
+                "robot_id": "string",
+                "calibration_data": "Dict[str, MotorCalibrationData]"
+            },
+            "PositionRequest": {
+                "robot_id": "string", 
+                "position": "RobotPosition"
+            },
+            "MotorCalibrationData": {
+                "motor_id": "int",
+                "calibrated": "bool",
+                "calibration_date": "string",
+                "forward_time": "float",
+                "backward_time": "float",
+                "speed": "int",
+                "min_position": "float (optional)",
+                "max_position": "float (optional)",
+                "return_time": "float (optional)",
+                "total_travel_time": "float (optional)",
+                "average_travel_time": "float (optional)"
+            },
+            "RobotPosition": {
+                "timestamp": "string",
+                "motor_positions": "Dict[int, float]",
+                "position_name": "string (optional)"
+            }
+        }
+    }
+    
+    return endpoints
+
+@app.get("/api/database")
+async def database_info():
+    """Информация о структуре базы данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Получаем список всех таблиц
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        
+        database_info = {
+            "database_path": DB_PATH,
+            "tables": {}
+        }
+        
+        for table in tables:
+            table_name = table[0]
+            
+            # Получаем структуру таблицы
+            cursor.execute(f"PRAGMA table_info({table_name});")
+            columns = cursor.fetchall()
+            
+            # Получаем количество записей
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+            count = cursor.fetchone()[0]
+            
+            # Получаем примеры данных (первые 3 записи)
+            cursor.execute(f"SELECT * FROM {table_name} LIMIT 3;")
+            sample_data = cursor.fetchall()
+            
+            # Получаем названия колонок
+            column_names = [col[1] for col in columns]
+            
+            database_info["tables"][table_name] = {
+                "columns": [
+                    {
+                        "name": col[1],
+                        "type": col[2],
+                        "not_null": bool(col[3]),
+                        "default_value": col[4],
+                        "primary_key": bool(col[5])
+                    }
+                    for col in columns
+                ],
+                "row_count": count,
+                "sample_data": [
+                    dict(zip(column_names, row)) for row in sample_data
+                ]
+            }
+        
+        conn.close()
+        
+        return database_info
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Инициализация при запуске
 @app.on_event("startup")
 async def startup_event():

@@ -17,12 +17,10 @@ from classes.robot_arm_controller import RobotArmController
 class CalibratedRobotArm:
     """Высокоуровневый контроллер робо-руки с поддержкой калибровки"""
     
-    def __init__(self, calibration_file: str = None):
+    def __init__(self, robot_id: str = "esp32_robot_arm_001", server_url: str = "http://localhost:8000/api"):
         self.controller = RobotArmController()
-        if calibration_file is None:
-            self.calibration_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "motor_calibration", "motor_calibration.json")
-        else:
-            self.calibration_file = calibration_file
+        self.robot_id = robot_id
+        self.server_url = server_url
         self.calibration_data = {}
         self.connected = False
         
@@ -49,7 +47,7 @@ class CalibratedRobotArm:
         if await self.controller.connect(device):
             self.connected = True
             print("Connected to ESP32 Robot Arm")
-            self.load_calibration_data()
+            await self.load_calibration_data()
             
             # Загружаем стартовую позицию после калибровки
             await self.load_calibration_start_position()
@@ -66,19 +64,44 @@ class CalibratedRobotArm:
             self.connected = False
             print("Disconnected from ESP32")
     
-    def load_calibration_data(self):
-        """Загрузка данных калибровки из файла"""
-        if os.path.exists(self.calibration_file):
-            try:
-                with open(self.calibration_file, 'r') as f:
-                    self.calibration_data = json.load(f)
-                print(f"Loaded calibration data from {self.calibration_file}")
-                return True
-            except Exception as e:
-                print(f"Error loading calibration data: {e}")
-                return False
-        else:
-            print("No calibration file found. Calibrated movements will not be available.")
+    async def load_calibration_data(self):
+        """Загрузка данных калибровки из API"""
+        try:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.server_url}/calibration/{self.robot_id}") as response:
+                    if response.status == 404:
+                        print("No calibration data found on server")
+                        return False
+                    elif response.status != 200:
+                        raise Exception(f"Server error: {response.status}")
+                    
+                    data = await response.json()
+                    calibration_data = {}
+                    
+                    for motor_id_str, calib_dict in data["calibration_data"].items():
+                        motor_id = int(motor_id_str)
+                        calibration_data[motor_id] = {
+                            "calibrated": calib_dict["calibrated"],
+                            "calibration_date": calib_dict["calibration_date"],
+                            "forward_time": calib_dict["forward_time"],
+                            "backward_time": calib_dict["backward_time"],
+                            "speed": calib_dict["speed"],
+                            "positions": {
+                                "min": calib_dict.get("min_position"),
+                                "max": calib_dict.get("max_position")
+                            },
+                            "return_time": calib_dict.get("return_time"),
+                            "total_travel_time": calib_dict.get("total_travel_time"),
+                            "average_travel_time": calib_dict.get("average_travel_time")
+                        }
+                    
+                    self.calibration_data = calibration_data
+                    print(f"Loaded calibration data from API for robot {self.robot_id}")
+                    return True
+        except Exception as e:
+            print(f"Error loading calibration data: {e}")
+            print("Make sure API server is running: cd python/server && python3 data_server.py")
             return False
     
     def is_motor_calibrated(self, motor: int) -> bool:
@@ -320,36 +343,38 @@ class CalibratedRobotArm:
             print()
     
     async def load_calibration_start_position(self):
-        """Загрузка стартовой позиции после калибровки"""
+        """Загрузка стартовой позиции после калибровки из API"""
         try:
-            # Пытаемся загрузить из файла позиций
-            position_file = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "data", "robot_data_position.json"
-            )
-            
-            if os.path.exists(position_file):
-                with open(position_file, 'r') as f:
-                    data = json.load(f)
-                
-                # Проверяем, что это стартовая позиция после калибровки
-                if data.get("position_name") == "calibration_start":
-                    motor_positions = data["motor_positions"]
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.server_url}/position/{self.robot_id}") as response:
+                    if response.status == 404:
+                        print("ℹ️  No calibration start position found on server, using default (0%)")
+                        return False
+                    elif response.status != 200:
+                        raise Exception(f"Server error: {response.status}")
                     
-                    # Обновляем текущие позиции
-                    for motor_id, position in motor_positions.items():
-                        motor_id = int(motor_id)
-                        if motor_id in self.current_positions:
-                            self.current_positions[motor_id] = position
+                    data = await response.json()
+                    position_data = data["position"]
                     
-                    print(f"✅ Loaded calibration start position: {motor_positions}")
-                    return True
-            
-            print("ℹ️  No calibration start position found, using default (0%)")
-            return False
-            
+                    # Проверяем, что это стартовая позиция после калибровки
+                    if position_data.get("position_name") == "calibration_start":
+                        motor_positions = position_data["motor_positions"]
+                        
+                        # Обновляем текущие позиции
+                        for motor_id, position in motor_positions.items():
+                            motor_id = int(motor_id)
+                            if motor_id in self.current_positions:
+                                self.current_positions[motor_id] = position
+                        
+                        print(f"✅ Loaded calibration start position from API: {motor_positions}")
+                        return True
+                    else:
+                        print("ℹ️  No calibration start position found, using default (0%)")
+                        return False
         except Exception as e:
             print(f"❌ Error loading calibration start position: {e}")
+            print("Make sure API server is running: cd python/server && python3 data_server.py")
             return False
     
     async def verify_start_position(self):
