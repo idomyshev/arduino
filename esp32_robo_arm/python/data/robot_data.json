@@ -1,0 +1,28 @@
+{
+  "0": {
+    "motor_id": 0,
+    "calibrated": true,
+    "calibration_date": "2025-10-14T15:01:37.429142",
+    "forward_time": 9.2,
+    "backward_time": 14.4,
+    "speed": 150,
+    "min_position": null,
+    "max_position": null,
+    "return_time": null,
+    "total_travel_time": null,
+    "average_travel_time": null
+  },
+  "1": {
+    "motor_id": 1,
+    "calibrated": true,
+    "calibration_date": "2025-10-14T15:01:37.429150",
+    "forward_time": 25.1,
+    "backward_time": 43.4,
+    "speed": 150,
+    "min_position": null,
+    "max_position": null,
+    "return_time": null,
+    "total_travel_time": null,
+    "average_travel_time": null
+  }
+}
