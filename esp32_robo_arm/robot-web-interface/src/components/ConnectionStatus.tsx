@@ -1,5 +1,5 @@
 // Connection Status Component
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -8,14 +8,9 @@ import {
   Box,
   Chip,
   Alert,
-  CircularProgress
-} from '@mui/material';
-import {
-  Wifi,
-  WifiOff,
-  Bluetooth,
-  BluetoothDisabled
-} from '@mui/icons-material';
+  CircularProgress,
+} from "@mui/material";
+import { Bluetooth, BluetoothDisabled } from "@mui/icons-material";
 
 interface ConnectionStatusProps {
   connected: boolean;
@@ -30,7 +25,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   connecting,
   error,
   onConnect,
-  onDisconnect
+  onDisconnect,
 }) => {
   const getStatusIcon = () => {
     if (connecting) return <CircularProgress size={20} />;
@@ -38,19 +33,24 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   };
 
   const getStatusColor = () => {
-    if (connecting) return 'warning';
-    return connected ? 'success' : 'error';
+    if (connecting) return "warning";
+    return connected ? "success" : "error";
   };
 
   const getStatusText = () => {
-    if (connecting) return 'Подключение...';
-    return connected ? 'Подключено к роботу' : 'Не подключено';
+    if (connecting) return "Подключение...";
+    return connected ? "Подключено к роботу" : "Не подключено";
   };
 
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          mb={2}
+        >
           <Typography variant="h6" component="h2">
             🤖 Статус подключения
           </Typography>
@@ -58,7 +58,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             icon={getStatusIcon()}
             label={getStatusText()}
             color={getStatusColor() as any}
-            variant={connected ? 'filled' : 'outlined'}
+            variant={connected ? "filled" : "outlined"}
           />
         </Box>
 
@@ -78,7 +78,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           >
             Подключиться
           </Button>
-          
+
           <Button
             variant="outlined"
             color="error"
@@ -92,7 +92,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 
         {connected && (
           <Alert severity="success" sx={{ mt: 2 }}>
-            Робот готов к управлению! Используйте кнопки ниже для движения моторов.
+            Робот готов к управлению! Используйте кнопки ниже для движения
+            моторов.
           </Alert>
         )}
       </CardContent>

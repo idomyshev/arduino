@@ -10,7 +10,7 @@ import {
   Button,
   Paper,
 } from "@mui/material";
-import { Settings, Stop, Home } from "@mui/icons-material";
+import { Settings, Stop } from "@mui/icons-material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 
@@ -115,7 +115,7 @@ const App: React.FC = () => {
 
             <Grid container spacing={3}>
               {motors.map((motor) => (
-                <Grid item xs={12} md={4} key={motor.id}>
+                <Grid size={{ xs: 12, md: 4 }} key={motor.id}>
                   <MotorControl
                     motor={motor}
                     onMoveMotor={moveMotor}
