@@ -10,6 +10,7 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
+
 import {
   PlayArrow,
   Stop,
@@ -17,6 +18,9 @@ import {
   KeyboardArrowDown,
   OpenInFull,
 } from "@mui/icons-material";
+
+import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
+
 import { MotorState, MOTOR_BUTTONS } from "../types/index.js";
 
 interface MotorControlProps {
@@ -40,14 +44,13 @@ const MotorControl: React.FC<MotorControlProps> = ({
 }) => {
   const motorConfig = MOTOR_BUTTONS[motor.id as keyof typeof MOTOR_BUTTONS];
 
-  const getMotorIcon = () => {
+  const getMotorIcon = (isLeft: boolean) => {
     switch (motor.id) {
       case 0:
-        return <KeyboardArrowUp />; // Малое плечо
       case 1:
-        return <KeyboardArrowDown />; // Большое плечо
+        return isLeft ? <KeyboardArrowDown /> : <KeyboardArrowUp />; // Малое и большое плечо
       case 2:
-        return <OpenInFull />; // Клешня
+        return isLeft ? <CloseFullscreenIcon /> : <OpenInFull />; // Клешня
       default:
         return <PlayArrow />;
     }
@@ -100,7 +103,7 @@ const MotorControl: React.FC<MotorControlProps> = ({
           <Button
             variant="contained"
             color="primary"
-            startIcon={getMotorIcon()}
+            startIcon={getMotorIcon(true)}
             onClick={handleLeftButtonClick}
             disabled={disabled || motor.isMoving}
             sx={{ flex: 1 }}
@@ -111,7 +114,7 @@ const MotorControl: React.FC<MotorControlProps> = ({
           <Button
             variant="contained"
             color="primary"
-            startIcon={getMotorIcon()}
+            startIcon={getMotorIcon(false)}
             onClick={handleRightButtonClick}
             disabled={disabled || motor.isMoving}
             sx={{ flex: 1 }}

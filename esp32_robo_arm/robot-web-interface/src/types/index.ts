@@ -53,8 +53,8 @@ export const MOTOR_BUTTONS = {
   },
   1: {
     // Большое плечо
-    left: { label: "Поднять", direction: "backward" as const },
-    right: { label: "Опустить", direction: "forward" as const },
+    left: { label: "Опустить", direction: "forward" as const },
+    right: { label: "Поднять", direction: "backward" as const },
   },
   2: {
     // Клешня
