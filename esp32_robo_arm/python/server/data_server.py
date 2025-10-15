@@ -1009,10 +1009,10 @@ async def calibration_page():
                     <p>Это позволяет точно определить стартовую точку без использования третьего временного параметра.</p>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Мотор 0 (M1)</div>
+                        <div class="motor-title">Малое плечо (M1)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(0, 'forward')">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(0, 'backward')">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(0, 'backward')">Опустить</button>
+                            <button class="btn btn-primary" onclick="moveMotor(0, 'forward')">Поднять</button>
                             <button class="btn btn-danger" onclick="stopMotor(0)">Стоп</button>
                             <span>Позиция: <span id="motor-0-position">0%</span></span>
                         </div>
@@ -1027,10 +1027,10 @@ async def calibration_page():
                     </div>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Мотор 1 (M2)</div>
+                        <div class="motor-title">Большое плечо (M2)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(1, 'forward')">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(1, 'backward')">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(1, 'backward')">Поднять</button>
+                            <button class="btn btn-primary" onclick="moveMotor(1, 'forward')">Опустить</button>
                             <button class="btn btn-danger" onclick="stopMotor(1)">Стоп</button>
                             <span>Позиция: <span id="motor-1-position">0%</span></span>
                         </div>
@@ -1045,10 +1045,10 @@ async def calibration_page():
                     </div>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Мотор 2 (M3)</div>
+                        <div class="motor-title">Клешня (M3)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(2, 'forward')">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(2, 'backward')">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(2, 'backward')">Закрыть</button>
+                            <button class="btn btn-primary" onclick="moveMotor(2, 'forward')">Открыть</button>
                             <button class="btn btn-danger" onclick="stopMotor(2)">Стоп</button>
                             <span>Позиция: <span id="motor-2-position">0%</span></span>
                         </div>
@@ -1079,7 +1079,7 @@ async def calibration_page():
                     </div>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Измерение времени для мотора 0</div>
+                        <div class="motor-title">Измерение времени для Малое плечо (M1)</div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="measureForwardTime(0)">⏱️ Измерить время вперед</button>
                             <span>Время вперед: <span id="forward-time-0">-</span> сек</span>
@@ -1091,7 +1091,7 @@ async def calibration_page():
                     </div>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Измерение времени для мотора 1</div>
+                        <div class="motor-title">Измерение времени для Большое плечо (M2)</div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="measureForwardTime(1)">⏱️ Измерить время вперед</button>
                             <span>Время вперед: <span id="forward-time-1">-</span> сек</span>
@@ -1103,7 +1103,7 @@ async def calibration_page():
                     </div>
                     
                     <div class="motor-control">
-                        <div class="motor-title">Измерение времени для мотора 2</div>
+                        <div class="motor-title">Измерение времени для Клешня (M3)</div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="measureForwardTime(2)">⏱️ Измерить время вперед</button>
                             <span>Время вперед: <span id="forward-time-2">-</span> сек</span>
