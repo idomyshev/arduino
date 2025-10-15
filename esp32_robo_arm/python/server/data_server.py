@@ -841,6 +841,9 @@ async def calibration_page():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Калибровка робота - ESP32 Robot Arm</title>
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
         <style>
             body {
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1008,15 +1011,15 @@ async def calibration_page():
                     <div class="motor-control">
                         <div class="motor-title">Мотор 0 (M1)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(0, 'forward', 100)">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(0, 'backward', 100)">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(0, 'forward')">Вперед</button>
+                            <button class="btn btn-primary" onclick="moveMotor(0, 'backward')">Назад</button>
                             <button class="btn btn-danger" onclick="stopMotor(0)">Стоп</button>
                             <span>Позиция: <span id="motor-0-position">0%</span></span>
                         </div>
                         <div class="control-group">
                             <label>Скорость:</label>
-                            <input type="range" id="speed-0" min="50" max="255" value="100" onchange="updateSpeed(0)">
-                            <span id="speed-value-0">100</span>
+                            <input type="range" id="speed-0" min="50" max="255" value="200" onchange="updateSpeed(0)">
+                            <span id="speed-value-0">200</span>
                         </div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="setStartPosition(0)">✅ Установить стартовую позицию</button>
@@ -1026,15 +1029,15 @@ async def calibration_page():
                     <div class="motor-control">
                         <div class="motor-title">Мотор 1 (M2)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(1, 'forward', 100)">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(1, 'backward', 100)">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(1, 'forward')">Вперед</button>
+                            <button class="btn btn-primary" onclick="moveMotor(1, 'backward')">Назад</button>
                             <button class="btn btn-danger" onclick="stopMotor(1)">Стоп</button>
                             <span>Позиция: <span id="motor-1-position">0%</span></span>
                         </div>
                         <div class="control-group">
                             <label>Скорость:</label>
-                            <input type="range" id="speed-1" min="50" max="255" value="100" onchange="updateSpeed(1)">
-                            <span id="speed-value-1">100</span>
+                            <input type="range" id="speed-1" min="50" max="255" value="200" onchange="updateSpeed(1)">
+                            <span id="speed-value-1">200</span>
                         </div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="setStartPosition(1)">✅ Установить стартовую позицию</button>
@@ -1044,15 +1047,15 @@ async def calibration_page():
                     <div class="motor-control">
                         <div class="motor-title">Мотор 2 (M3)</div>
                         <div class="control-group">
-                            <button class="btn btn-primary" onclick="moveMotor(2, 'forward', 100)">Вперед</button>
-                            <button class="btn btn-primary" onclick="moveMotor(2, 'backward', 100)">Назад</button>
+                            <button class="btn btn-primary" onclick="moveMotor(2, 'forward')">Вперед</button>
+                            <button class="btn btn-primary" onclick="moveMotor(2, 'backward')">Назад</button>
                             <button class="btn btn-danger" onclick="stopMotor(2)">Стоп</button>
                             <span>Позиция: <span id="motor-2-position">0%</span></span>
                         </div>
                         <div class="control-group">
                             <label>Скорость:</label>
-                            <input type="range" id="speed-2" min="50" max="255" value="100" onchange="updateSpeed(2)">
-                            <span id="speed-value-2">100</span>
+                            <input type="range" id="speed-2" min="50" max="255" value="200" onchange="updateSpeed(2)">
+                            <span id="speed-value-2">200</span>
                         </div>
                         <div class="control-group">
                             <button class="btn btn-primary" onclick="setStartPosition(2)">✅ Установить стартовую позицию</button>
@@ -1235,6 +1238,16 @@ async def calibration_page():
                     alert('WebSocket не подключен');
                     return;
                 }
+                
+                // Если скорость не передана, получаем её из ползунка
+                if (speed === undefined) {
+                    speed = parseInt(document.getElementById(`speed-${motor}`).value);
+                    console.log(`Получена скорость из ползунка ${motor}: ${speed}`);
+                } else {
+                    console.log(`Используется переданная скорость: ${speed}`);
+                }
+                
+                console.log(`Отправка команды: мотор=${motor}, направление=${direction}, скорость=${speed}`);
                 
                 websocket.send(JSON.stringify({
                     command: 'move_motor',
