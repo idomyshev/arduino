@@ -159,7 +159,12 @@ const MotorControl: React.FC<MotorControlProps> = ({
         </Box>
 
         {/* Status Indicator */}
-        <Box display="flex" alignItems="center" justifyContent="center">
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{ mt: 2 }}
+        >
           <Chip
             icon={motor.isMoving ? <PlayArrow /> : <Stop />}
             label={motor.isMoving ? "Движется" : "Остановлен"}
