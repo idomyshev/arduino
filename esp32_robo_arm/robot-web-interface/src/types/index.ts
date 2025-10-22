@@ -16,11 +16,17 @@ export interface MotorCommand {
 }
 
 export interface WebSocketMessage {
-  type: "connection_status" | "motor_command" | "error" | "status";
-  message?: string;
-  connected?: boolean;
-  success?: boolean;
-  robot_connected?: boolean;
+  error: boolean;
+  command:
+    | "connect"
+    | "disconnect"
+    | "move_motor"
+    | "stop_motor"
+    | "stop_all"
+    | "status";
+  message: string;
+  robot_connected: boolean;
+  command_error?: string;
 }
 
 export interface CalibrationData {

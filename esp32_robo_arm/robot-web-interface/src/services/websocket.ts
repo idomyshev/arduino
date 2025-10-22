@@ -36,7 +36,7 @@ export class RobotWebSocketService {
       this.reconnectAttempts = 0;
       this.onConnectionChangeCallback?.(true);
       // Request current status
-      this.send({ command: "get_status" });
+      this.send({ command: "status" });
     };
 
     this.ws.onmessage = (event) => {

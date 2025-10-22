@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Robot Arm Data Server
-Простой сервер для хранения калибровочных данных и позиций робота
-"""
-
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -43,167 +38,133 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "robot_data_server.db")
 # Глобальный контроллер робота
 robot_controller = RobotArmController()
 robot_connected = False
-active_connections = set()  # WebSocket соединения
+active_connections = set()
 
-# WebSocket для управления роботом
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint для управления роботом"""
     global robot_connected
     await websocket.accept()
     active_connections.add(websocket)
+
+    known_commands = ["connect", "disconnect", "move_motor", "stop_motor", "stop_all", "status"]
+    check_connection_commands = ["move_motor", "stop_motor", "stop_all"]
+
+    command_error = None
+    error = None
+    message = None
     
     try:
         while True:
-            # Получаем сообщение от клиента
-            data = await websocket.receive_text()
-            print(f"WebSocket: Получено сообщение: {data}")
-            message = json.loads(data)
-            print(f"WebSocket: Распарсенное сообщение: {message}")
+            data_not_parsed = await websocket.receive_text()
+            data = json.loads(data_not_parsed)
+            print(f"Get message from websocket: {data}")
             
-            # Обрабатываем команды
-            command = message.get("command")
-            print(f"WebSocket: Команда: {command}")
+            command = data.get("command")
             
-            if command == "connect":
-                # Подключение к роботу
-                print(f"WebSocket: Получена команда connect")
+            if not command:
+                await websocket.send_text(json.dumps({
+                    "error": True,
+                    "message": "Command is required but not provided"
+                }))
+
+            if command not in known_commands:
+                await websocket.send_text(json.dumps({
+                    "error": True,
+                    "message": f"Unknown command: {command}. Available commands: {', '.join(known_commands)}"
+                }))
+
+            if command == "status":
+                error = False
+                message = f"Active websocket connections number: {len(active_connections)}"
+
+            elif command == "connect":
                 try:
                     device = await robot_controller.scan_for_device()
-                    print(f"WebSocket: Результат сканирования: {device}")
+
                     if device:
-                        print(f"WebSocket: Попытка подключения к {device.name}")
                         success = await robot_controller.connect(device)
-                        print(f"WebSocket: Результат подключения: {success}")
+
                         if success:
-                            robot_connected = True
-                            response = {
-                                "type": "connection_status",
-                                "connected": True,
-                                "message": f"Подключено к {device.name}"
-                            }
-                            print(f"WebSocket: Отправка ответа: {response}")
-                            await websocket.send_text(json.dumps(response))
+                            error = False
+                            message = f"Connected to {device.name}"
+
                         else:
-                            response = {
-                                "type": "connection_status", 
-                                "connected": False,
-                                "message": "Ошибка подключения к роботу"
-                            }
-                            print(f"WebSocket: Отправка ответа: {response}")
-                            await websocket.send_text(json.dumps(response))
+                            error = True
+                            message = "Error to connect to robot"
                     else:
-                        response = {
-                            "type": "connection_status",
-                            "connected": False, 
-                            "message": "Робот не найден. Убедитесь, что он включен и в зоне действия Bluetooth"
-                        }
-                        print(f"WebSocket: Отправка ответа: {response}")
-                        await websocket.send_text(json.dumps(response))
+                        error = True
+                        message = "Robot not found via bluetooth"
+
                 except Exception as e:
-                    print(f"WebSocket: Ошибка в команде connect: {e}")
-                    response = {
-                        "type": "error",
-                        "message": f"Ошибка подключения: {str(e)}"
-                    }
-                    await websocket.send_text(json.dumps(response))
+                    error = True
+                    message = f"Error in websocket command"
+                    command_error = e
             
             elif command == "disconnect":
-                # Отключение от робота
                 await robot_controller.disconnect()
                 robot_connected = False
+                error = False
+                message = "Disconnected from robot"
+
+            # This check should be before other checks which depend on this one
+            elif command in check_connection_commands:
                 await websocket.send_text(json.dumps({
-                    "type": "connection_status",
-                    "connected": False,
-                    "message": "Отключено от робота"
-                }))
+                        "error": True,
+                        command: command,
+                        "message": "Robot should be connected to use this command"
+                    }))
+                continue
             
             elif command == "move_motor":
-                # Движение мотора
-                if not robot_connected:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Сначала подключитесь к роботу!"
-                    }))
-                    continue
-                
                 motor = message.get("motor")
                 direction = message.get("direction")
                 speed = message.get("speed")
                 duration = message.get("duration")
                 
                 try:
-                    await robot_controller.send_command(motor, direction, speed, duration)
-                    await websocket.send_text(json.dumps({
-                        "type": "motor_command",
-                        "success": True,
-                        "message": f"Мотор {motor} {direction} со скоростью {speed}"
-                    }))
+                    error = False
+                    message = f"Motor {motor}, direction {direction}, speed {speed}, duration {duration}"
                 except Exception as e:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": f"Ошибка команды мотора: {str(e)}"
-                    }))
+                    error = True
+                    message = f"Error move motor {motor}, direction {direction}, speed {speed}, duration {duration}"
+                    command_error = e
             
             elif command == "stop_motor":
-                # Остановка мотора
-                if not robot_connected:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Сначала подключитесь к роботу!"
-                    }))
-                    continue
-                
                 motor = message.get("motor")
+
                 try:
-                    await robot_controller.send_command(motor, "stop", 0)
-                    await websocket.send_text(json.dumps({
-                        "type": "motor_command",
-                        "success": True,
-                        "message": f"Мотор {motor} остановлен"
-                    }))
+                    error = False
+                    message = f"Motor {motor} stopped"
                 except Exception as e:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": f"Ошибка остановки мотора: {str(e)}"
-                    }))
+                    error = True
+                    message = f"Error stop motor {motor} stopped"
+                    command_error = e
             
             elif command == "stop_all":
-                # Остановка всех моторов
-                if not robot_connected:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Сначала подключитесь к роботу!"
-                    }))
-                    continue
-                
                 try:
                     await robot_controller.stop_all_motors()
-                    await websocket.send_text(json.dumps({
-                        "type": "motor_command",
-                        "success": True,
-                        "message": "Все моторы остановлены"
-                    }))
+                    error = False
+                    message = f"All motors stopped"
+
                 except Exception as e:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": f"Ошибка остановки моторов: {str(e)}"
-                    }))
+                    error = True
+                    message = f"Error stop all motors"
+                    command_error = e
             
-            elif command == "get_status":
-                # Получение статуса
-                print(f"WebSocket: Получена команда get_status, robot_connected = {robot_connected}")
-                await websocket.send_text(json.dumps({
-                    "type": "status",
-                    "robot_connected": robot_connected,
-                    "active_connections": len(active_connections)
-                }))
+            response = {
+                "error": error,
+                "command": command,
+                "message": message,
+                "robot_connected": robot_connected
+            }
             
-            else:
-                await websocket.send_text(json.dumps({
-                    "type": "error",
-                    "message": f"Неизвестная команда: {command}"
-                }))
+            if command_error is not None and error:
+                response["command_error"] = str(command_error)
+
+            print(f"WebSocket response: {response}")        
+        
+            await websocket.send_text(json.dumps(response))
     
     except WebSocketDisconnect:
         active_connections.discard(websocket)

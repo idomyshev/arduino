@@ -22,36 +22,36 @@ export const useRobot = () => {
   const [wsService] = useState(() => new RobotWebSocketService());
 
   useEffect(() => {
-    // Handle WebSocket messages
     wsService.onMessage((message: WebSocketMessage) => {
-      switch (message.type) {
-        case "connection_status":
+      switch (message.command) {
+        case "status":
           setConnection((prev) => ({
             ...prev,
-            connected: message.connected || false,
+            connected: message.robot_connected,
             connecting: false,
             error: message.message,
           }));
           break;
 
-        case "motor_command":
-          if (message.success) {
+        case "move_motor":
+          if (message.error === false) {
             console.log("Motor command executed:", message.message);
           }
           break;
 
-        case "error":
+        case "connect":
           setConnection((prev) => ({
             ...prev,
             error: message.message,
+            connected: message.robot_connected,
             connecting: false,
           }));
           break;
 
-        case "status":
+        case "disconnect":
           setConnection((prev) => ({
             ...prev,
-            connected: message.robot_connected || false,
+            connected: message.robot_connected,
             connecting: false,
           }));
           break;
