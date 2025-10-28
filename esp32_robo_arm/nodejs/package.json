@@ -1,0 +1,33 @@
+{
+  "name": "esp32-robot-arm-controller",
+  "version": "1.0.0",
+  "description": "ESP32 Robot Arm BLE Controller (TypeScript)",
+  "main": "dist/robot_arm_controller.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/robot_arm_controller.js",
+    "scan": "yarn build && node dist/robot_arm_controller.js scan",
+    "connect": "yarn build && node dist/robot_arm_controller.js connect",
+    "demo": "yarn build && node dist/robot_arm_controller.js demo",
+    "example": "yarn build && node dist/example.js",
+    "dev": "tsc && node dist/robot_arm_controller.js"
+  },
+  "keywords": [
+    "esp32",
+    "bluetooth",
+    "ble",
+    "robot-arm",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-23"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}
+

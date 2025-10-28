@@ -94,7 +94,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             message = "Error to connect to robot"
                     else:
                         error = True
-                        message = "Robot not found via bluetooth"
+                        message = "Robot is not found via bluetooth"
 
                 except Exception as e:
                     error = True
