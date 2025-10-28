@@ -2,7 +2,7 @@
  * Пример использования RobotArmController
  */
 
-import { RobotArmController } from './robot_arm_controller.js';
+import { RobotArmController } from './classes/RobotArmController.js';
 
 async function main() {
   console.log('='.repeat(60));

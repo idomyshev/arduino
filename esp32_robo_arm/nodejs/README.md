@@ -21,6 +21,8 @@ yarn build
 
 ```bash
 yarn scan
+# или
+node dist/robot.js scan
 ```
 
 Выполняет поиск устройства ESP32-RobotArm в течение 10 секунд.
@@ -29,6 +31,8 @@ yarn scan
 
 ```bash
 yarn connect
+# или
+node dist/robot.js connect
 ```
 
 Подключается к устройству и открывает интерактивную консоль для управления.
@@ -62,6 +66,8 @@ m 2 forward 255 1500
 
 ```bash
 yarn demo
+# или
+node dist/robot.js demo
 ```
 
 Выполняет демонстрационную последовательность движений робо-руки.
@@ -69,7 +75,7 @@ yarn demo
 ## Использование в коде
 
 ```typescript
-import { RobotArmController } from './src/robot_arm_controller.js';
+import { RobotArmController } from './classes/RobotArmController';
 
 async function example() {
   const controller = new RobotArmController();
@@ -125,10 +131,10 @@ yarn build
 yarn dev
 
 # Запуск конкретной команды
-yarn scan
-yarn connect
-yarn demo
-yarn example
+yarn scan      # Поиск устройства
+yarn connect   # Подключение и интерактивный режим
+yarn demo      # Демо последовательность
+yarn example   # Запуск примера
 ```
 
 ## Совместимость
