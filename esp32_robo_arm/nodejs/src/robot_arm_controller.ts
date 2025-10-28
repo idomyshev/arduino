@@ -354,82 +354,85 @@ ESP32 Robot Arm BLE Controller
 async function interactiveMode(controller: RobotArmController): Promise<void> {
   console.log("Interactive mode. Type 'help' for commands, 'quit' to exit.");
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: 'Robot> '
-  });
+  return new Promise<void>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: 'Robot> '
+    });
 
-  rl.prompt();
+    rl.prompt();
 
-  rl.on('line', async (line: string) => {
-    const command = line.trim().toLowerCase();
+    rl.on('line', async (line: string) => {
+      const command = line.trim().toLowerCase();
 
-    if (command === 'quit') {
-      rl.close();
-      return;
-    } else if (command === 'help') {
-      printHelp();
-      rl.prompt();
-    } else if (command === 'stop') {
-      await controller.stopAllMotors();
-      rl.prompt();
-    } else if (command.startsWith('m ')) {
-      // Команда управления мотором: m <motor> <direction> <speed> [duration]
-      const parts = command.split(' ');
-      
-      if (parts.length >= 4 && parts.length <= 5) {
-        try {
-          const motor = parseInt(parts[1]);
-          const direction = parts[2];
-          const speed = parseInt(parts[3]);
-          let duration: number | undefined;
+      if (command === 'quit') {
+        rl.close();
+        return;
+      } else if (command === 'help') {
+        printHelp();
+        rl.prompt();
+      } else if (command === 'stop') {
+        await controller.stopAllMotors();
+        rl.prompt();
+      } else if (command.startsWith('m ')) {
+        // Команда управления мотором: m <motor> <direction> <speed> [duration]
+        const parts = command.split(' ');
+        
+        if (parts.length >= 4 && parts.length <= 5) {
+          try {
+            const motor = parseInt(parts[1]);
+            const direction = parts[2];
+            const speed = parseInt(parts[3]);
+            let duration: number | undefined;
 
-          // Проверяем наличие опционального параметра duration
-          if (parts.length === 5) {
-            duration = parseInt(parts[4]);
-            if (duration <= 0) {
-              console.log('Duration must be positive');
+            // Проверяем наличие опционального параметра duration
+            if (parts.length === 5) {
+              duration = parseInt(parts[4]);
+              if (duration <= 0) {
+                console.log('Duration must be positive');
+                rl.prompt();
+                return;
+              }
+            }
+
+            if (motor < 0 || motor > 2) {
+              console.log('Motor must be 0, 1, or 2');
               rl.prompt();
               return;
             }
-          }
 
-          if (motor < 0 || motor > 2) {
-            console.log('Motor must be 0, 1, or 2');
-            rl.prompt();
-            return;
-          }
+            if (direction !== 'forward' && direction !== 'backward') {
+              console.log("Direction must be 'forward' or 'backward'");
+              rl.prompt();
+              return;
+            }
 
-          if (direction !== 'forward' && direction !== 'backward') {
-            console.log("Direction must be 'forward' or 'backward'");
-            rl.prompt();
-            return;
-          }
+            if (speed < 0 || speed > 255) {
+              console.log('Speed must be 0-255');
+              rl.prompt();
+              return;
+            }
 
-          if (speed < 0 || speed > 255) {
-            console.log('Speed must be 0-255');
-            rl.prompt();
-            return;
+            await controller.sendCommand(motor, direction, speed, duration);
+          } catch (error) {
+            console.log('Invalid motor, speed, or duration value');
           }
-
-          await controller.sendCommand(motor, direction, speed, duration);
-        } catch (error) {
-          console.log('Invalid motor, speed, or duration value');
+        } else {
+          console.log('Usage: m <motor> <direction> <speed> [duration]');
         }
+        
+        rl.prompt();
       } else {
-        console.log('Usage: m <motor> <direction> <speed> [duration]');
+        console.log("Unknown command. Type 'help' for available commands.");
+        rl.prompt();
       }
-      
-      rl.prompt();
-    } else {
-      console.log("Unknown command. Type 'help' for available commands.");
-      rl.prompt();
-    }
-  });
+    });
 
-  rl.on('close', () => {
-    process.exit(0);
+    rl.on('close', () => {
+      resolve();
+      process.exit(0);
+    });
   });
 }
 
@@ -474,7 +477,6 @@ async function main(): Promise<void> {
     console.log(`Error: ${error}`);
   } finally {
     await controller.disconnect();
-    process.exit(0);
   }
 }
 
