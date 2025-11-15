@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include <ESP32Servo.h>
 #include <ArduinoJson.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
 
 Servo myServo;
 int servoPin = 18;
@@ -51,7 +53,7 @@ JsonDocument doc;
 String jsonResponse;
 
 // Set web server port number to 80
-WiFiServer server(80);
+AsyncWebServer server(80);
 
 // Variable to store the HTTP request
 String header;
@@ -108,108 +110,161 @@ void setup()
     Serial.print("IP Address: ");
     Serial.println(WiFi.softAPIP());
 
+        // Обработка POST запросов с JSON телом
+        AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/", [](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonObject jsonObj = json.as<JsonObject>();
+            
+            // Обработка JSON данных
+            if (jsonObj["command"].is<String>())
+            {
+                String cmd = jsonObj["command"];
+                Serial.println("Command: " + cmd);
+                
+                if (cmd == "on")
+                {
+                    digitalWrite(ledPin, HIGH);
+                    ledState = "ON";
+                    
+                    // Обработка моторов из JSON
+                    if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
+                        int motor = jsonObj["motor"];
+                        int speed = jsonObj["speed"];
+                        Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed));
+                        // Ваша логика управления моторами
+                        ledcWrite(0, 255);
+                        digitalWrite(M1_IN1, HIGH);
+                        digitalWrite(M1_IN2, LOW);
+                    }
+                }
+                else if (cmd == "off")
+                {
+                    digitalWrite(ledPin, LOW);
+                    ledState = "OFF";
+                    digitalWrite(M1_IN1, LOW);
+                    digitalWrite(M1_IN2, LOW);
+                }
+            }
+            
+            // Отправка JSON ответа
+            AsyncJsonResponse *response = new AsyncJsonResponse();
+            JsonObject root = response->getRoot();
+            root["status"] = "ok";
+            root["integrated_led_state"] = ledState;
+            response->setLength();
+            request->send(response);
+        });
+
+        handler->setMethod(HTTP_POST);
+        
+        server.addHandler(handler);
+        
+        // Обработка 404
+        server.onNotFound([](AsyncWebServerRequest *request) {
+            request->send(404, "application/json", "{\"error\":\"Not found\"}");
+        });
+
     // Start the server
     server.begin();
 }
 
 void loop()
 {
-    WiFiClient client = server.available(); // Listen for incoming clients
+    // WiFiClient client = server.available(); // Listen for incoming clients
 
-    if (client)
-    { // If a new client connects
-        // Serial.println("New Client.");          // Print a message in the serial monitor
-        String currentLine = ""; // Make a String to hold incoming data from the client
-        while (client.connected())
-        { // Loop while the client is connected
-            if (client.available())
-            {                           // If there's bytes to read from the client,
-                char c = client.read(); // Read a byte
-                // Serial.write(c);                    // Print it out to the serial monitor
-                header += c;
-                if (c == '\n')
-                { // If the byte is a newline character
-                    if (currentLine.length() == 0)
-                    {
+    // if (client)
+    // { // If a new client connects
+    //     // Serial.println("New Client.");          // Print a message in the serial monitor
+    //     String currentLine = ""; // Make a String to hold incoming data from the client
+    //     while (client.connected())
+    //     { // Loop while the client is connected
+    //         if (client.available())
+    //         {                           // If there's bytes to read from the client,
+    //             char c = client.read(); // Read a byte
+    //             // Serial.write(c);                    // Print it out to the serial monitor
+    //             header += c;
+    //             if (c == '\n')
+    //             { // If the byte is a newline character
+    //                 if (currentLine.length() == 0)
+    //                 {
 
                
-                        // HTTP response
-                        client.println("HTTP/1.1 200 OK");
-                        client.println("Content-type:text/html");
-                        client.println("Connection: close");
-                        client.println();
+    //                     // HTTP response
+    //                     client.println("HTTP/1.1 200 OK");
+    //                     client.println("Content-type:text/html");
+    //                     client.println("Connection: close");
+    //                     client.println();
 
-                        doc["ledState"] = ledState;
-                        doc["ledPin"] = ledPin;
+    //                     doc["ledState"] = ledState;
+    //                     doc["ledPin"] = ledPin;
 
-                        serializeJson(doc, jsonResponse);
-                        client.println(jsonResponse);
+    //                     serializeJson(doc, jsonResponse);
+    //                     client.println(jsonResponse);
 
-                        // The HTTP response ends with another blank line
-                        client.println();
+    //                     // The HTTP response ends with another blank line
+    //                     client.println();
 
-                        // Break out of the while loop
-                        break;
-                    }
-                    else
-                    {
-                        currentLine = "";
-                    }
-                }
-                else if (c != '\r')
-                {
-                    currentLine += c;
-                }
+    //                     // Break out of the while loop
+    //                     break;
+    //                 }
+    //                 else
+    //                 {
+    //                     currentLine = "";
+    //                 }
+    //             }
+    //             else if (c != '\r')
+    //             {
+    //                 currentLine += c;
+    //             }
 
-                command = header.substring(5, 7);
-                speed = header.substring(8, 12);
-                speedSign = speed.substring(0, 1);
-                if (speedSign == "-")
-                {
-                    speed = speed.substring(1, 4);
-                }
-                else
-                {
-                    speed = speed.substring(0, 3);
-                }
+    //             command = header.substring(5, 7);
+    //             speed = header.substring(8, 12);
+    //             speedSign = speed.substring(0, 1);
+    //             if (speedSign == "-")
+    //             {
+    //                 speed = speed.substring(1, 4);
+    //             }
+    //             else
+    //             {
+    //                 speed = speed.substring(0, 3);
+    //             }
 
-                speedInt = speed.toInt();
+    //             speedInt = speed.toInt();
 
-                Serial.println(command);
-                Serial.println(speed);
+    //             Serial.println(command);
+    //             Serial.println(speed);
 
-                if (command == "on")
-                {
-                    digitalWrite(ledPin, HIGH);
-                    ledState = "ON";
+    //             if (command == "on")
+    //             {
+    //                 digitalWrite(ledPin, HIGH);
+    //                 ledState = "ON";
 
-                    ledcWrite(0, 255);
-                    digitalWrite(M1_IN1, HIGH);
-                    digitalWrite(M1_IN2, LOW);
+    //                 ledcWrite(0, 255);
+    //                 digitalWrite(M1_IN1, HIGH);
+    //                 digitalWrite(M1_IN2, LOW);
 
-                    if (speedInt > 0 && speedInt < 180)
-                    {
-                        // Serial.println("Speed is: " + String(speedInt));
-                        // myServo.write(speedInt);
-                    }
-                }
+    //                 if (speedInt > 0 && speedInt < 180)
+    //                 {
+    //                     // Serial.println("Speed is: " + String(speedInt));
+    //                     // myServo.write(speedInt);
+    //                 }
+    //             }
 
-                if (command == "of")
-                {
-                    digitalWrite(M1_IN1, LOW);
-                    digitalWrite(M1_IN2, LOW);
+    //             if (command == "of")
+    //             {
+    //                 digitalWrite(M1_IN1, LOW);
+    //                 digitalWrite(M1_IN2, LOW);
 
-                    digitalWrite(ledPin, LOW);
-                    ledState = "OFF";
-                }
-            }
-        }
-        // Clear the header variable
-        header = "";
+    //                 digitalWrite(ledPin, LOW);
+    //                 ledState = "OFF";
+    //             }
+    //         }
+    //     }
+    //     // Clear the header variable
+    //     header = "";
 
-        // Close the connection
-        client.stop();
-        // Serial.println("Client disconnected.");
-        // Serial.println("");
-    }
+    //     // Close the connection
+    //     client.stop();
+    //     // Serial.println("Client disconnected.");
+    //     // Serial.println("");
+    // }
 }
