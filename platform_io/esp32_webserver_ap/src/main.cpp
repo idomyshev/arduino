@@ -8,18 +8,20 @@
 Servo myServo;
 int servoPin = 18;
 
-// Пины для моторов
-#define M1_PWM 18 // PWM выход на PWMA (базовый поворот)
-#define M1_IN1 16 // AIN1
-#define M1_IN2 17 // AIN2
+// Структура для пинов моторов
+struct MotorPins
+{
+    int pwm;  // PWM выход
+    int in1;  // IN1
+    int in2;  // IN2
+};
 
-#define M2_PWM 19 // PWM выход на PWMB (подъем/опускание)
-#define M2_IN1 21 // BIN1
-#define M2_IN2 22 // BIN2
-
-#define M3_PWM 23 // PWM выход на PWMC (сгибание/разгибание)
-#define M3_IN1 25 // CIN1
-#define M3_IN2 26 // CIN2
+// Объект с пинами моторов
+MotorPins motors[3] = {
+    {18, 16, 17}, // M1 - базовый поворот
+    {19, 21, 22}, // M2 - подъем/опускание
+    {23, 25, 26}  // M3 - сгибание/разгибание
+};
 
 #define STBY 27 // STBY (держать HIGH)
 
@@ -35,7 +37,7 @@ struct MotorState
     bool hasDuration;        // Есть ли ограничение по времени
 };
 
-MotorState motors[3] = {
+MotorState motorStates[3] = {
     {0, true, 0, 0, false}, // M1
     {0, true, 0, 0, false}, // M2
     {0, true, 0, 0, false}  // M3
@@ -72,12 +74,11 @@ int speedInt = 0;
 
 void setup()
 {
-    pinMode(M1_IN1, OUTPUT);
-    pinMode(M1_IN2, OUTPUT);
-    pinMode(M2_IN1, OUTPUT);
-    pinMode(M2_IN2, OUTPUT);
-    pinMode(M3_IN1, OUTPUT);
-    pinMode(M3_IN2, OUTPUT);
+    // Настройка пинов моторов
+    for (int i = 0; i < 3; i++) {
+        pinMode(motors[i].in1, OUTPUT);
+        pinMode(motors[i].in2, OUTPUT);
+    }
     pinMode(STBY, OUTPUT);
 
     digitalWrite(STBY, HIGH); // включаем драйвер
@@ -87,9 +88,10 @@ void setup()
     ledcSetup(1, PWM_FREQ, PWM_BITS); // канал 1 для M2
     ledcSetup(2, PWM_FREQ, PWM_BITS); // канал 2 для M3
 
-    ledcAttachPin(M1_PWM, 0); // привязываем пин к каналу
-    ledcAttachPin(M2_PWM, 1);
-    ledcAttachPin(M3_PWM, 2);
+    // Привязываем пины к каналам
+    ledcAttachPin(motors[0].pwm, 0);
+    ledcAttachPin(motors[1].pwm, 1);
+    ledcAttachPin(motors[2].pwm, 2);
 
     // myServo.attach(servoPin);
     // myServo.write(0);
@@ -119,29 +121,32 @@ void setup()
             {
                 String cmd = jsonObj["command"];
                 Serial.println("Command: " + cmd);
+
+                if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
+                    int motor = jsonObj["motor"];
+                    int speed = jsonObj["speed"];
+                    Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed));
+                    // Ваша логика управления моторами
+
+                    if (cmd == "on") {
+                        ledcWrite(motor, speed);
+                        digitalWrite(motors[motor].in1, HIGH);
+                        digitalWrite(motors[motor].in2, LOW);
+                    } else if (cmd == "off") {
+                        digitalWrite(motors[motor].in1, LOW);
+                        digitalWrite(motors[motor].in2, LOW);
+                    }
+                }
                 
                 if (cmd == "on")
                 {
                     digitalWrite(ledPin, HIGH);
                     ledState = "ON";
-                    
-                    // Обработка моторов из JSON
-                    if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
-                        int motor = jsonObj["motor"];
-                        int speed = jsonObj["speed"];
-                        Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed));
-                        // Ваша логика управления моторами
-                        ledcWrite(0, 255);
-                        digitalWrite(M1_IN1, HIGH);
-                        digitalWrite(M1_IN2, LOW);
-                    }
                 }
                 else if (cmd == "off")
                 {
                     digitalWrite(ledPin, LOW);
                     ledState = "OFF";
-                    digitalWrite(M1_IN1, LOW);
-                    digitalWrite(M1_IN2, LOW);
                 }
             }
             
