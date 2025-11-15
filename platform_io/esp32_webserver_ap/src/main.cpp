@@ -5,6 +5,43 @@
 Servo myServo;
 int servoPin = 18;
 
+// Пины для моторов
+#define M1_PWM 18 // PWM выход на PWMA (базовый поворот)
+#define M1_IN1 16 // AIN1
+#define M1_IN2 17 // AIN2
+
+#define M2_PWM 19 // PWM выход на PWMB (подъем/опускание)
+#define M2_IN1 21 // BIN1
+#define M2_IN2 22 // BIN2
+
+#define M3_PWM 23 // PWM выход на PWMC (сгибание/разгибание)
+#define M3_IN1 25 // CIN1
+#define M3_IN2 26 // CIN2
+
+#define STBY 27 // STBY (держать HIGH)
+
+#define PWM_FREQ 20000 // 20 кГц — плавная работа сервоприводов
+#define PWM_BITS 8     // 0..255 диапазон duty
+
+struct MotorState
+{
+    int speed;               // Скорость 0-255
+    bool forward;            // Направление: true = вперед, false = назад
+    unsigned long startTime; // Время начала работы мотора
+    unsigned long duration;  // Длительность работы в миллисекундах (0 = бесконечно)
+    bool hasDuration;        // Есть ли ограничение по времени
+};
+
+MotorState motors[3] = {
+    {0, true, 0, 0, false}, // M1
+    {0, true, 0, 0, false}, // M2
+    {0, true, 0, 0, false}  // M3
+};
+
+void processCommand(String jsonCommand);
+void updateMotors();
+void stopAllMotors();
+
 // Set the ESP32 as an access point
 const char *ssid = "ESP32-AP";
 const char *password = "Angara86**"; // Password is optional
@@ -29,8 +66,27 @@ int speedInt = 0;
 
 void setup()
 {
-    myServo.attach(servoPin);
-    myServo.write(0);
+    pinMode(M1_IN1, OUTPUT);
+    pinMode(M1_IN2, OUTPUT);
+    pinMode(M2_IN1, OUTPUT);
+    pinMode(M2_IN2, OUTPUT);
+    pinMode(M3_IN1, OUTPUT);
+    pinMode(M3_IN2, OUTPUT);
+    pinMode(STBY, OUTPUT);
+
+    digitalWrite(STBY, HIGH); // включаем драйвер
+
+    // Настройка PWM каналов для ESP32 Arduino framework 3.x
+    ledcSetup(0, PWM_FREQ, PWM_BITS); // канал 0 для M1
+    ledcSetup(1, PWM_FREQ, PWM_BITS); // канал 1 для M2
+    ledcSetup(2, PWM_FREQ, PWM_BITS); // канал 2 для M3
+
+    ledcAttachPin(M1_PWM, 0); // привязываем пин к каналу
+    ledcAttachPin(M2_PWM, 1);
+    ledcAttachPin(M3_PWM, 2);
+
+    // myServo.attach(servoPin);
+    // myServo.write(0);
 
     // Initialize the LED pin as an output
     pinMode(ledPin, OUTPUT);
@@ -123,15 +179,22 @@ void loop()
                     digitalWrite(ledPin, HIGH);
                     ledState = "ON";
 
+                    ledcWrite(0, 255);
+                    digitalWrite(M1_IN1, HIGH);
+                    digitalWrite(M1_IN2, LOW);
+
                     if (speedInt > 0 && speedInt < 180)
                     {
-                        Serial.println("Speed is: " + String(speedInt));
-                        myServo.write(speedInt);
+                        // Serial.println("Speed is: " + String(speedInt));
+                        // myServo.write(speedInt);
                     }
                 }
 
                 if (command == "of")
                 {
+                    digitalWrite(M1_IN1, LOW);
+                    digitalWrite(M1_IN2, LOW);
+
                     digitalWrite(ledPin, LOW);
                     ledState = "OFF";
                 }
