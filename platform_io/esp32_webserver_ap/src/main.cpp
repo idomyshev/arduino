@@ -4,9 +4,20 @@
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncJson.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 Servo myServo;
 int servoPin = 18;
+
+// OLED Display configuration
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1 // Reset pin (not used)
+#define SCREEN_ADDRESS 0x3C // I2C address for 0.96" OLED
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Структура для пинов моторов
 struct MotorPins
@@ -17,10 +28,12 @@ struct MotorPins
 };
 
 // Объект с пинами моторов
-MotorPins motors[3] = {
+// I2C для OLED дисплея использует GPIO13 (SDA) и GPIO14 (SCL)
+MotorPins motors[4] = {
     {18, 16, 17}, // M1 - базовый поворот
     {19, 21, 22}, // M2 - подъем/опускание
-    {23, 25, 26}  // M3 - сгибание/разгибание
+    {23, 25, 26}, // M3 - сгибание/разгибание
+    {32, 33, 12}  // M4 - четвертый мотор
 };
 
 #define STBY 27 // STBY (держать HIGH)
@@ -37,10 +50,11 @@ struct MotorState
     bool hasDuration;        // Есть ли ограничение по времени
 };
 
-MotorState motorStates[3] = {
+MotorState motorStates[4] = {
     {0, true, 0, 0, false}, // M1
     {0, true, 0, 0, false}, // M2
-    {0, true, 0, 0, false}  // M3
+    {0, true, 0, 0, false}, // M3
+    {0, true, 0, 0, false}  // M4
 };
 
 void processCommand(String jsonCommand);
@@ -76,7 +90,7 @@ int speedInt = 0;
 void setup()
 {
     // Настройка пинов моторов
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         pinMode(motors[i].in1, OUTPUT);
         pinMode(motors[i].in2, OUTPUT);
     }
@@ -88,11 +102,13 @@ void setup()
     ledcSetup(0, PWM_FREQ, PWM_BITS); // канал 0 для M1
     ledcSetup(1, PWM_FREQ, PWM_BITS); // канал 1 для M2
     ledcSetup(2, PWM_FREQ, PWM_BITS); // канал 2 для M3
+    ledcSetup(3, PWM_FREQ, PWM_BITS); // канал 3 для M4
 
     // Привязываем пины к каналам
     ledcAttachPin(motors[0].pwm, 0);
     ledcAttachPin(motors[1].pwm, 1);
     ledcAttachPin(motors[2].pwm, 2);
+    ledcAttachPin(motors[3].pwm, 3);
 
     // myServo.attach(servoPin);
     // myServo.write(0);
@@ -104,6 +120,22 @@ void setup()
     // Start serial communication
     Serial.begin(115200);
     delay(1000);
+
+    // Initialize I2C and OLED display
+    // Используем альтернативные пины для I2C: GPIO13 (SDA), GPIO14 (SCL)
+    Wire.begin(13, 14); // SDA=GPIO13, SCL=GPIO14
+    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+        Serial.println("SSD1306 allocation failed");
+        // Continue without display if initialization fails
+    } else {
+        Serial.println("OLED display initialized");
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 0);
+        display.println("ESP32 Starting...");
+        display.display();
+    }
 
     // Connect to WiFi network
     Serial.print("Connecting to WiFi: ");
@@ -125,10 +157,26 @@ void setup()
         Serial.println("WiFi connected!");
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
+        
+        // Update OLED display with WiFi info
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("WiFi Connected!");
+        display.print("IP: ");
+        display.println(WiFi.localIP());
+        display.display();
     } else {
         Serial.println("");
         Serial.println("Failed to connect to WiFi!");
         Serial.println("Please check SSID and password.");
+        
+        // Update OLED display with error
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("WiFi Failed!");
+        display.println("Restarting...");
+        display.display();
+        
         Serial.println("Restarting in 5 seconds...");
         delay(5000);
         ESP.restart();
