@@ -47,9 +47,10 @@ void processCommand(String jsonCommand);
 void updateMotors();
 void stopAllMotors();
 
-// Set the ESP32 as an access point
-const char *ssid = "ESP32-AP";
-const char *password = "Angara86**"; // Password is optional
+// WiFi credentials - подключение к существующей сети
+// Замените на имя и пароль вашей WiFi сети
+const char *ssid = "DIGIFIBRA-6GDf";  // Имя вашей WiFi сети
+const char *password = "XYbSCxGZsK";  // Пароль от WiFi сети
 
 JsonDocument doc;
 String jsonResponse;
@@ -102,15 +103,36 @@ void setup()
 
     // Start serial communication
     Serial.begin(115200);
+    delay(1000);
 
-    // Set up ESP32 as an access point
-    Serial.println("Setting up access point...");
-    WiFi.softAP(ssid, password);
-
-    // Print the IP address
-    Serial.println("Access point created.");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.softAPIP());
+    // Connect to WiFi network
+    Serial.print("Connecting to WiFi: ");
+    Serial.println(ssid);
+    
+    WiFi.mode(WIFI_STA); // Устанавливаем режим станции (клиент)
+    WiFi.begin(ssid, password);
+    
+    // Ожидание подключения
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("");
+        Serial.println("WiFi connected!");
+        Serial.print("IP Address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("");
+        Serial.println("Failed to connect to WiFi!");
+        Serial.println("Please check SSID and password.");
+        Serial.println("Restarting in 5 seconds...");
+        delay(5000);
+        ESP.restart();
+    }
 
         // Обработка POST запросов с JSON телом
         AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/", [](AsyncWebServerRequest *request, JsonVariant &json) {
