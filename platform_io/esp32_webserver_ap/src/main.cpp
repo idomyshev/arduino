@@ -18,6 +18,7 @@ int servoPin = 18;
 #define SCREEN_ADDRESS 0x3C // I2C address for 0.96" OLED
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+bool displayInitialized = false; // Флаг инициализации дисплея
 
 // Структура для пинов моторов
 struct MotorPins
@@ -60,6 +61,7 @@ MotorState motorStates[4] = {
 void processCommand(String jsonCommand);
 void updateMotors();
 void stopAllMotors();
+void updateDisplay();
 
 // WiFi credentials - подключение к существующей сети
 // Замените на имя и пароль вашей WiFi сети
@@ -126,9 +128,11 @@ void setup()
     Wire.begin(13, 14); // SDA=GPIO13, SCL=GPIO14
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println("SSD1306 allocation failed");
+        displayInitialized = false;
         // Continue without display if initialization fails
     } else {
         Serial.println("OLED display initialized");
+        displayInitialized = true;
         display.clearDisplay();
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
@@ -158,13 +162,7 @@ void setup()
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
         
-        // Update OLED display with WiFi info
-        display.clearDisplay();
-        display.setCursor(0, 0);
-        display.println("WiFi Connected!");
-        display.print("IP: ");
-        display.println(WiFi.localIP());
-        display.display();
+        // IP адрес будет отображаться в updateDisplay()
     } else {
         Serial.println("");
         Serial.println("Failed to connect to WiFi!");
@@ -195,17 +193,37 @@ void setup()
                 if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
                     int motor = jsonObj["motor"];
                     int speed = jsonObj["speed"];
-                    Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed));
+                    // Проверяем наличие поля reverse (необязательное)
+                    bool reverse = jsonObj["reverse"].is<bool>() ? jsonObj["reverse"].as<bool>() : false;
+                    
+                    Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed) + ", Reverse: " + String(reverse ? "true" : "false"));
                     // Ваша логика управления моторами
 
-                    if (cmd == "on") {
+                    if (cmd == "on" && speed > 0) {
+                        // Обновляем состояние мотора
+                        motorStates[motor].speed = speed;
+                        motorStates[motor].forward = !reverse; // forward = true если не reverse
+                        
                         ledcWrite(motor, speed);
-                        digitalWrite(motors[motor].in1, HIGH);
-                        digitalWrite(motors[motor].in2, LOW);
-                    } else if (cmd == "off") {
+                        // Если reverse == true, меняем направление вращения
+                        if (reverse) {
+                            digitalWrite(motors[motor].in1, LOW);
+                            digitalWrite(motors[motor].in2, HIGH);
+                        } else {
+                            digitalWrite(motors[motor].in1, HIGH);
+                            digitalWrite(motors[motor].in2, LOW);
+                        }
+                    } else if (cmd == "off" || speed == 0) {
+                        // Обновляем состояние мотора (остановка)
+                        motorStates[motor].speed = 0;
+                        
+                        ledcWrite(motor, 0);
                         digitalWrite(motors[motor].in1, LOW);
                         digitalWrite(motors[motor].in2, LOW);
                     }
+                    
+                    // Обновляем дисплей после изменения состояния мотора
+                    updateDisplay();
                 }
                 
                 if (cmd == "on")
@@ -240,106 +258,57 @@ void setup()
 
     // Start the server
     server.begin();
+    
+    // Первоначальное обновление дисплея
+    updateDisplay();
+}
+
+// Функция для обновления OLED дисплея с информацией о моторах
+void updateDisplay()
+{
+    // Проверяем, что дисплей инициализирован
+    if (!displayInitialized) {
+        return; // Если дисплей не инициализирован, выходим
+    }
+    
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    
+    // Первая строка: IP адрес
+    display.setCursor(0, 0);
+    if (WiFi.status() == WL_CONNECTED) {
+        display.print("IP: ");
+        display.println(WiFi.localIP());
+    } else {
+        display.println("WiFi disconnected");
+    }
+    
+    // Вторая строка: пустая
+    display.println();
+    
+    // С третьей строки: информация о моторах
+    for (int i = 0; i < 4; i++) {
+        display.print("M");
+        display.print(i + 1);
+        display.print(" ");
+        // Если скорость равна 0, показываем "stop"
+        if (motorStates[i].speed == 0) {
+            display.println("stop");
+        } else {
+            // Форматируем скорость с ведущими пробелами (всегда 3 символа)
+            char speedStr[4];
+            sprintf(speedStr, "%3d", motorStates[i].speed);
+            display.print(speedStr);
+            display.print(" ");
+            display.println(motorStates[i].forward ? "forward" : "reverse");
+        }
+    }
+    
+    display.display();
 }
 
 void loop()
 {
-    // WiFiClient client = server.available(); // Listen for incoming clients
-
-    // if (client)
-    // { // If a new client connects
-    //     // Serial.println("New Client.");          // Print a message in the serial monitor
-    //     String currentLine = ""; // Make a String to hold incoming data from the client
-    //     while (client.connected())
-    //     { // Loop while the client is connected
-    //         if (client.available())
-    //         {                           // If there's bytes to read from the client,
-    //             char c = client.read(); // Read a byte
-    //             // Serial.write(c);                    // Print it out to the serial monitor
-    //             header += c;
-    //             if (c == '\n')
-    //             { // If the byte is a newline character
-    //                 if (currentLine.length() == 0)
-    //                 {
-
-               
-    //                     // HTTP response
-    //                     client.println("HTTP/1.1 200 OK");
-    //                     client.println("Content-type:text/html");
-    //                     client.println("Connection: close");
-    //                     client.println();
-
-    //                     doc["ledState"] = ledState;
-    //                     doc["ledPin"] = ledPin;
-
-    //                     serializeJson(doc, jsonResponse);
-    //                     client.println(jsonResponse);
-
-    //                     // The HTTP response ends with another blank line
-    //                     client.println();
-
-    //                     // Break out of the while loop
-    //                     break;
-    //                 }
-    //                 else
-    //                 {
-    //                     currentLine = "";
-    //                 }
-    //             }
-    //             else if (c != '\r')
-    //             {
-    //                 currentLine += c;
-    //             }
-
-    //             command = header.substring(5, 7);
-    //             speed = header.substring(8, 12);
-    //             speedSign = speed.substring(0, 1);
-    //             if (speedSign == "-")
-    //             {
-    //                 speed = speed.substring(1, 4);
-    //             }
-    //             else
-    //             {
-    //                 speed = speed.substring(0, 3);
-    //             }
-
-    //             speedInt = speed.toInt();
-
-    //             Serial.println(command);
-    //             Serial.println(speed);
-
-    //             if (command == "on")
-    //             {
-    //                 digitalWrite(ledPin, HIGH);
-    //                 ledState = "ON";
-
-    //                 ledcWrite(0, 255);
-    //                 digitalWrite(M1_IN1, HIGH);
-    //                 digitalWrite(M1_IN2, LOW);
-
-    //                 if (speedInt > 0 && speedInt < 180)
-    //                 {
-    //                     // Serial.println("Speed is: " + String(speedInt));
-    //                     // myServo.write(speedInt);
-    //                 }
-    //             }
-
-    //             if (command == "of")
-    //             {
-    //                 digitalWrite(M1_IN1, LOW);
-    //                 digitalWrite(M1_IN2, LOW);
-
-    //                 digitalWrite(ledPin, LOW);
-    //                 ledState = "OFF";
-    //             }
-    //         }
-    //     }
-    //     // Clear the header variable
-    //     header = "";
-
-    //     // Close the connection
-    //     client.stop();
-    //     // Serial.println("Client disconnected.");
-    //     // Serial.println("");
-    // }
+    
 }
