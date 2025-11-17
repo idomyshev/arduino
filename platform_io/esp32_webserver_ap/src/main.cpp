@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Preferences.h>
 
 Servo myServo;
 int servoPin = 18;
@@ -19,6 +20,17 @@ int servoPin = 18;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool displayInitialized = false; // Флаг инициализации дисплея
+
+// Preferences for permanent storage
+Preferences preferences;
+
+// Calibration state
+struct CheckDirectionState {
+    bool isActive;
+    int motorNumber;
+    bool isDirectionCorrect;
+    unsigned long finishTime; // Time when calibration finished (for display)
+} checkDirectionState = {false, -1, false, 0};
 
 // Структура для пинов моторов
 struct MotorPins
@@ -62,6 +74,9 @@ void processCommand(String jsonCommand);
 void updateMotors();
 void stopAllMotors();
 void updateDisplay();
+bool isMotorDirectionSet(int motor);
+bool loadMotorDirection(int motor);
+void saveMotorDirection(int motor, bool reverse);
 
 // WiFi credentials - подключение к существующей сети
 // Замените на имя и пароль вашей WiFi сети
@@ -123,6 +138,9 @@ void setup()
     Serial.begin(115200);
     delay(1000);
 
+    // Initialize Preferences for permanent storage
+    preferences.begin("motors", false);
+
     // Initialize I2C and OLED display
     // Используем альтернативные пины для I2C: GPIO13 (SDA), GPIO14 (SCL)
     Wire.begin(13, 14); // SDA=GPIO13, SCL=GPIO14
@@ -181,64 +199,40 @@ void setup()
     }
 
         // Обработка POST запросов с JSON телом
-        AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/", [](AsyncWebServerRequest *request, JsonVariant &json) {
+        AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/run_motor", [](AsyncWebServerRequest *request, JsonVariant &json) {
             JsonObject jsonObj = json.as<JsonObject>();
-            
-            // Обработка JSON данных
-            if (jsonObj["command"].is<String>())
-            {
-                String cmd = jsonObj["command"];
-                Serial.println("Command: " + cmd);
 
-                if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
-                    int motor = jsonObj["motor"];
-                    int speed = jsonObj["speed"];
-                    // Проверяем наличие поля reverse (необязательное)
-                    bool reverse = jsonObj["reverse"].is<bool>() ? jsonObj["reverse"].as<bool>() : false;
+            if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
+                int motor = jsonObj["motor"];
+                int speed = jsonObj["speed"];
+                // Проверяем наличие поля reverse (необязательное)
+                bool inputReverse = jsonObj["reverse"].is<bool>() ? jsonObj["reverse"].as<bool>() : false;
+                bool savedDirection = loadMotorDirection(motor);
+                bool reverse = savedDirection ? inputReverse : !inputReverse;
+
+                if (speed > 0) {
+                    motorStates[motor].speed = speed;
+                    motorStates[motor].forward = !reverse; // forward = true если не reverse
                     
-                    Serial.println("Motor: " + String(motor) + ", Speed: " + String(speed) + ", Reverse: " + String(reverse ? "true" : "false"));
-                    // Ваша логика управления моторами
+                    ledcWrite(motor, speed);
 
-                    if (cmd == "on" && speed > 0) {
-                        // Обновляем состояние мотора
-                        motorStates[motor].speed = speed;
-                        motorStates[motor].forward = !reverse; // forward = true если не reverse
-                        
-                        ledcWrite(motor, speed);
-                        // Если reverse == true, меняем направление вращения
-                        if (reverse) {
-                            digitalWrite(motors[motor].in1, LOW);
-                            digitalWrite(motors[motor].in2, HIGH);
-                        } else {
-                            digitalWrite(motors[motor].in1, HIGH);
-                            digitalWrite(motors[motor].in2, LOW);
-                        }
-                    } else if (cmd == "off" || speed == 0) {
-                        // Обновляем состояние мотора (остановка)
-                        motorStates[motor].speed = 0;
-                        
-                        ledcWrite(motor, 0);
+                    if (reverse) {
                         digitalWrite(motors[motor].in1, LOW);
+                        digitalWrite(motors[motor].in2, HIGH);
+                    } else {
+                        digitalWrite(motors[motor].in1, HIGH);
                         digitalWrite(motors[motor].in2, LOW);
                     }
-                    
-                    // Обновляем дисплей после изменения состояния мотора
-                    updateDisplay();
+                } else if (speed == 0) {
+                    motorStates[motor].speed = 0;
+                    ledcWrite(motor, 0);
+                    digitalWrite(motors[motor].in1, LOW);
+                    digitalWrite(motors[motor].in2, LOW);
                 }
                 
-                if (cmd == "on")
-                {
-                    digitalWrite(ledPin, HIGH);
-                    ledState = "ON";
-                }
-                else if (cmd == "off")
-                {
-                    digitalWrite(ledPin, LOW);
-                    ledState = "OFF";
-                }
+                updateDisplay();
             }
-            
-            // Отправка JSON ответа
+                
             AsyncJsonResponse *response = new AsyncJsonResponse();
             JsonObject root = response->getRoot();
             root["status"] = "ok";
@@ -250,6 +244,110 @@ void setup()
         handler->setMethod(HTTP_POST);
         
         server.addHandler(handler);
+        
+        AsyncCallbackJsonWebHandler *checkDirectionStartHandler = new AsyncCallbackJsonWebHandler("/check_direction_start", [](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonObject jsonObj = json.as<JsonObject>();
+            
+            if (jsonObj["motor"].is<int>() && jsonObj["speed"].is<int>()) {
+                int motor = jsonObj["motor"];
+                int speed = jsonObj["speed"];
+                
+                checkDirectionState.isActive = true;
+                checkDirectionState.motorNumber = motor;
+                checkDirectionState.finishTime = 0;
+                                
+                motorStates[motor].speed = speed;
+                motorStates[motor].forward = true;
+                ledcWrite(motor, speed);
+                digitalWrite(motors[motor].in1, HIGH);
+                digitalWrite(motors[motor].in2, LOW);
+                
+                updateDisplay();
+                
+                AsyncJsonResponse *response = new AsyncJsonResponse();
+                JsonObject root = response->getRoot();
+                root["status"] = "ok";
+                root["message"] = "Check direction started";
+                root["motor"] = motor; 
+                response->setLength();
+                request->send(response);
+            } else {
+                request->send(400, "application/json", "{\"error\":\"Invalid parameters\"}");
+            }
+        });
+        checkDirectionStartHandler->setMethod(HTTP_POST);
+        server.addHandler(checkDirectionStartHandler);
+        
+        AsyncCallbackJsonWebHandler *checkDirectionStopHandler = new AsyncCallbackJsonWebHandler("/check_direction_stop", [](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonObject jsonObj = json.as<JsonObject>();
+
+            if (!checkDirectionState.isActive) {
+                request->send(400, "application/json", "{\"error\":\"Checking direction was not run\"}");
+                return;
+            }
+            
+            if (jsonObj["is_direction_correct"].is<bool>()) {
+                bool isDirectionCorrect = jsonObj["is_direction_correct"].as<bool>();
+                int motor = checkDirectionState.motorNumber;
+                
+                // Stop motor
+                motorStates[motor].speed = 0;
+                ledcWrite(motor, 0);
+                digitalWrite(motors[motor].in1, LOW);
+                digitalWrite(motors[motor].in2, LOW);
+                
+                // Save calibration value
+                saveMotorDirection(motor, isDirectionCorrect);
+                checkDirectionState.isDirectionCorrect = isDirectionCorrect;
+                checkDirectionState.finishTime = millis();
+                                
+                updateDisplay();
+                
+                AsyncJsonResponse *response = new AsyncJsonResponse();
+                JsonObject root = response->getRoot();
+                root["status"] = "ok";
+                root["message"] = "Direction checking finished";
+                root["motor"] = checkDirectionState.motorNumber;
+                root["is_direction_correct"] = isDirectionCorrect;
+                response->setLength();
+                request->send(response);
+            } else {
+                request->send(400, "application/json", "{\"error\":\"Invalid parameters\"}");
+            }
+        });
+        checkDirectionStopHandler->setMethod(HTTP_POST);
+        server.addHandler(checkDirectionStopHandler);
+
+        AsyncCallbackJsonWebHandler *checkDirectionStatusHandler = new AsyncCallbackJsonWebHandler("/check_direction_status", [](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonObject jsonObj = json.as<JsonObject>();
+            
+            if (jsonObj["motor"].is<int>()) {
+                int motor = jsonObj["motor"];
+
+                bool isSavedDirection = isMotorDirectionSet(motor);
+                
+                updateDisplay();
+                
+                AsyncJsonResponse *response = new AsyncJsonResponse();
+                JsonObject root = response->getRoot();
+                root["status"] = "ok";
+                root["message"] = "Check direction status";
+                root["motor"] = motor; 
+
+                if (!isSavedDirection) {
+                    root["is_direction_correct"] = "undefined";
+                } else {
+                    root["is_direction_correct"] = loadMotorDirection(motor);
+                }
+
+                response->setLength();
+                request->send(response);
+            } else {
+                request->send(400, "application/json", "{\"error\":\"Invalid parameters\"}");
+            }
+        });
+        checkDirectionStatusHandler->setMethod(HTTP_POST);
+        server.addHandler(checkDirectionStatusHandler);
         
         // Обработка 404
         server.onNotFound([](AsyncWebServerRequest *request) {
@@ -287,28 +385,63 @@ void updateDisplay()
     // Вторая строка: пустая
     display.println();
     
-    // С третьей строки: информация о моторах
-    for (int i = 0; i < 4; i++) {
-        display.print("M");
-        display.print(i + 1);
-        display.print(" ");
-        // Если скорость равна 0, показываем "stop"
-        if (motorStates[i].speed == 0) {
-            display.println("stop");
-        } else {
-            // Форматируем скорость с ведущими пробелами (всегда 3 символа)
-            char speedStr[4];
-            sprintf(speedStr, "%3d", motorStates[i].speed);
-            display.print(speedStr);
+    // С третьей строки: информация о калибровке или моторах
+    if (checkDirectionState.isActive) {
+        // Показываем "calibration started" на третьей строке
+        display.println("Checking direction");
+        display.print("for motor M");
+        display.println(checkDirectionState.motorNumber + 1);
+    } else if (checkDirectionState.finishTime > 0 && (millis() - checkDirectionState.finishTime) < 3000) {
+        // Показываем результаты калибровки в течение 3 секунд
+        display.println("Saved direction for motor M");
+        display.println(checkDirectionState.motorNumber + 1);
+        display.print("Direction was correct: ");
+        display.println(checkDirectionState.isDirectionCorrect ? "true" : "false");
+    } else {
+        // Обычное отображение информации о моторах
+        for (int i = 0; i < 4; i++) {
+            display.print("M");
+            display.print(i + 1);
             display.print(" ");
-            display.println(motorStates[i].forward ? "forward" : "reverse");
+            // Если скорость равна 0, показываем "stop"
+            if (motorStates[i].speed == 0) {
+                display.println("stop");
+            } else {
+                // Форматируем скорость с ведущими пробелами (всегда 3 символа)
+                char speedStr[4];
+                sprintf(speedStr, "%3d", motorStates[i].speed);
+                display.print(speedStr);
+                display.print(" ");
+                display.println(motorStates[i].forward ? "forward" : "reverse");
+            }
         }
     }
     
     display.display();
 }
 
+bool loadMotorDirection(int motor) {
+    String key = "m" + String(motor) + "_direction";
+    return preferences.getBool(key.c_str(), true);
+}
+
+bool isMotorDirectionSet(int motor) {
+    String key = "m" + String(motor) + "_direction";
+    return preferences.isKey(key.c_str());
+}
+
+void saveMotorDirection(int motor, bool reverse) {
+    String key = "m" + String(motor) + "_direction";
+    preferences.putBool(key.c_str(), reverse);
+}
+
 void loop()
 {
-    
+    // Check if calibration finished message should be cleared (after 3 seconds)
+    if (checkDirectionState.finishTime > 0 && (millis() - checkDirectionState.finishTime) >= 3000) {
+        checkDirectionState.isActive = false;
+        checkDirectionState.motorNumber = -1;
+        checkDirectionState.finishTime = 0;
+        updateDisplay();
+    }
 }
